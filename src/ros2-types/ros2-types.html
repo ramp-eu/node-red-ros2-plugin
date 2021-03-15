@@ -1,0 +1,66 @@
+<!--Properties that can be configured for this node-->
+<script type="text/html" data-template-name="ROS2 Type">
+    <div class="form-row">
+        <label for="node-input-package"><i class="fa fa-archive"></i>&nbsp;&nbsp; Package</label>
+        <select id="node-input-package">
+	        <option></option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-msg"><i class="fa fa-envelope"></i>&nbsp;&nbsp; Message </label>
+        <select id="node-input-msg">
+	        <option></option>
+	</select>
+    </div>
+</script>
+
+<!--Node style definition-->
+<script type="text/javascript">
+    RED.nodes.registerType('ROS2 Type', 
+    {
+        category: 'ROS 2',
+        color: "#fdd0a2",
+        defaults: 
+        {
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "ros2-icon.png",
+        label: function() 
+        {
+            return "ROS2 Type";
+        },
+        oneditprepare: function() 
+        {
+            //Gets the IS ROS 2 compiled packages and add them to the packages selector
+            $.getJSON('ros2packages', function(data) 
+            {
+                $.each(data, function(i, package) 
+                {
+                    $("<option value='" + package + "'>" + package + "</option>").appendTo("#node-input-package");
+                });
+            });
+
+            //Everytime the packages selector changes, it gets the IS ROS 2 selected package messages and add them 
+            //to the messages selector
+            $("#node-input-package").change(function() 
+            {
+                $.getJSON('ros2msgs', { package: $("#node-input-package").val().toString() },  function(set) 
+                {
+                    $("#node-input-msg").empty();
+                    $("<option></option>").appendTo("#node-input-msg");
+                    $.each(set, function(i, message) 
+                    {
+                        message = message.replace('.mix', '');
+                        $("<option value='" + message + "'>" + message + "</option>").appendTo("#node-input-msg");
+                    });
+                });
+            });
+	    }
+    });
+</script>
+
+<!--Help text shown for the ros2-type node-->
+<script type="text/html" data-help-name="ROS2 Type">
+    <p> This node represents a specific ROS 2 Type. </p>
+</script>

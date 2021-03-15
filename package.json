@@ -1,15 +1,14 @@
 {
-  "name": "TTE.project1",
+  "name": "node-red-contrib-ros2-plugin",
   "license": "MIT",
-  "description": "Component for RAMP",
+  "description": "A collection of Node-RED nodes for connecting with ROS2.",
   "version": "0.0.1",
-  "main": "src/init",
   "engines": {
     "node": ">=10"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/jason-fox/TTE.project1.git"
+    "url": "git://github.com/ramp-eu/node-red-ros2-plugin.git"
   },
   "scripts": {
     "start": "node ./src/init",
@@ -40,7 +39,7 @@
     "textlint-rule-terminology": "~2.1.4",
     "textlint-rule-write-good": "~1.6.2"
   },
-  "keywords": [],
+  "keywords": ["ros2"],
   "husky": {
     "hooks": {
       "pre-commit": "lint-staged"
@@ -66,6 +65,14 @@
       "terminology": {
         "defaultTerms": true
       }
+    }
+  },
+  "node-red": {
+    "nodes": {
+      "publisher": "src/publisher/publisher.js",
+      "subscriber": "src/subscriber/subscriber.js",
+      "IDL Type": "src/idl-types/idl-types.js",
+      "ROS 2 Type": "src/ros2-types/ros2-types.js"
     }
   }
 }

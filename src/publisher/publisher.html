@@ -1,0 +1,205 @@
+<!--Properties that can be configured for this node-->
+<script type="text/html" data-template-name="publisher">
+    <div class="form-row">
+        <label for="node-input-topic"><i class="fa fa-tag"></i>&nbsp;&nbsp; Topic </label>
+        <input type="text" id="node-input-topic" placeholder="Topic">
+    </div>
+    <div class="form-row">
+        <label for="node-input-domain"><i class="fa fa-globe"></i>&nbsp;&nbsp; Domain ID </label>
+        <input type="number" id="node-input-domain" placeholder="Domain ID">
+    </div>
+    <div class="form-row node-input-property-container-row">
+        <label for="node-input-property-container"><i class="fa fa-bars"></i>&nbsp;&nbsp; QoS</label>
+        <ol id="node-input-property-container"></ol>
+    </div>
+</script>
+
+<!--Node style definition-->
+<script type="text/javascript">
+(function() 
+{
+
+    function resizeDialog(size) 
+    {
+        size = size || { height: $(".red-ui-tray-content form").height() }
+        var rows = $("#dialog-form>div:not(.node-input-property-container-row):visible");
+        var height = size.height;
+        for (var i=0; i<rows.length; i++) 
+        {
+            height -= $(rows[i]).outerHeight(true);
+        }
+        var editorRow = $("#dialog-form>div.node-input-property-container-row");
+        height -= (parseInt(editorRow.css("marginTop"))+parseInt(editorRow.css("marginBottom")));
+        height -= 6;
+	    $("#node-input-property-container").editableList('height',height);
+    }
+    RED.nodes.registerType('publisher', 
+    {
+        category: 'ROS 2',
+        color: '#77b4ea',
+        defaults: 
+        {
+            topic: { value: "", required: true},
+            domain: { value: "0" },
+            props: { value:[] }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "ros2-icon.png",
+        label: function() 
+        {
+            return this.name || "ros2-publisher";
+        },
+        oneditprepare: function() 
+        {
+            $(".red-ui-tray-content form").width("615px"); 
+
+            $('#node-input-property-container').css('min-height','120px').css('min-width','450px').editableList({
+                addItem: function(container, i, opt) //(row, index, data)
+                { 
+                    var prop = opt;
+                    if (!prop.hasOwnProperty('p')) 
+                    {
+                        prop = { p:"HistoryQos.kind",v:"KEEP_LAST",vt:"historykind" };
+                    }
+                    container.css({
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap'
+                    });
+                    var row = $('<div/>').appendTo(container);
+
+                    var typesmap = new Map();
+                    var qos_descriptions = {};
+
+                    var historykind = { value: "historyQos.kind", label: "", options: ["KEEP_LAST", "KEEP_ALL"], description: "History kind"};
+                    var reliability = { value: "reliability", label: "", options: ["RELIABLE", "BEST_EFFORT"]};
+                    var durability = { value: "durability", label: "", options: ["VOLATILE", "TRANSIENT_LOCAL"]};
+                    var livelinesskind = { value: "liveliness.kind", options: ["AUTOMATIC", "MANUAL_BY_TOPIC"]};
+
+                    typesmap.set("HistoryQos.kind", historykind);                    
+                    typesmap.set("HistoryQos.depth", "num");
+                    typesmap.set("ReliabilityQos", reliability);
+                    typesmap.set("DurabilityQos", durability);
+                    typesmap.set("DeadlineQos.period.sec", "num");
+                    typesmap.set("DeadlineQos.period.nanosec", "num");
+                    typesmap.set("LifespanQos.period.sec", "num");
+                    typesmap.set("LifespanQos.period.nanosec", "num");
+                    typesmap.set("LivelinessQos.kind", livelinesskind);
+                    typesmap.set("LivelinessQos.lease_duration.sec", "num");
+                    typesmap.set("LivelinessQos.lease_duration.nanosec", "num");
+
+                    $.getJSON('pubqosdescription', function(data) 
+                    {  
+                        qos_descriptions = JSON.parse(JSON.stringify(data));
+
+                        row.attr('title', qos_descriptions["HistoryQos"]["description"]);
+                    });
+
+                    var propertyName = $('<input/>',{class:"node-input-prop-property-name", type:"text"})
+                        .css({ width: "60%" })
+                        .appendTo(row)
+			            .typedInput({
+                            types:[{label: "QoS.", value:"qos", options: 
+                                ["HistoryQos.kind", "HistoryQos.depth", "ReliabilityQos", "DurabilityQos", "DeadlineQos.period.sec", 
+                                 "DeadlineQos.period.nanosec", "LifespanQos.period.sec", "LifespanQos.period.nanosec","LivelinessQos.kind",
+                                 "LivelinessQos.lease_duration.sec", "LivelinessQos.lease_duration.nanosec"]}]
+                        })
+                        .on('change', function(type, value) 
+                        {
+                            var new_type = typesmap.get(type.target.value);
+                            propertyValue.typedInput('types', [new_type]);
+                            if (new_type == "num" && value != "")
+                            {
+                                propertyValue.typedInput('value', "");
+                            }
+                            var selected_prop = type.target.value;
+                            var index = selected_prop.indexOf('.');
+                            if (index != -1)
+                            {
+                                selected_prop = selected_prop.substr(0, index);
+                            }
+                            if (qos_descriptions[selected_prop])
+                            {
+                                row.attr('title', qos_descriptions[selected_prop]["description"]);
+                            }
+                        });
+
+                    $('<div/>',{style: 'display:inline-block; padding:0px 6px;'})
+                        .text('=')
+                        .appendTo(row);
+
+                    var propertyValue = $('<input/>',{class:"node-input-prop-property-value",type:"text"})
+                        .css({"width": "calc(38% - 15px)"})
+                        .appendTo(row)
+                        .typedInput({types:[historykind]});
+
+                    propertyName.typedInput('value',prop.p);
+
+                    propertyValue.typedInput('value',prop.v);
+                    propertyValue.typedInput('type',prop.vt);
+                },
+                removable: true,
+                sortable: true
+            });
+
+            if (!this.props) 
+            {
+                this.props = [];
+            }
+
+            for (var i=0; i<this.props.length; i++) 
+            {
+                var prop = this.props[i];
+                var newProp = { p: prop.p, v: prop.v, vt: prop.vt };
+                $("#node-input-property-container").editableList('addItem',newProp);
+            }
+
+        },
+        oneditsave: function() 
+        {
+            /* Gather the injected properties of the msg object */
+            var props = $("#node-input-property-container").editableList('items');
+            var node = this;
+            node.props= [];
+            node.topic = "";
+            props.each( function(i) 
+            {
+                var prop = $(this);
+                var p = 
+                {
+                    p:prop.find(".node-input-prop-property-name").typedInput('value')
+                };
+                if(p.p && node.props.some(obj => obj.p === p.p))
+                {
+                    var errormsg = "The Qos " + p.p + " cannot be set twice";
+                    RED.notify(node._(errormsg,{message:node._("inject.errors.failed")}),"error");
+                }
+                else if (p.p) 
+                {
+                    p.v = prop.find(".node-input-prop-property-value").typedInput('value');
+                    p.vt = prop.find(".node-input-prop-property-value").typedInput('type');
+                    if (p.vt == "num" && p.v == "")
+                    {
+                        var errormsg = "The value for the Qos " + p.p + " cannot be empty";
+                        RED.notify(node._(errormsg,{message:node._("inject.errors.failed")}),"error");
+                    }
+                    else 
+                    {
+                        node.props.push(p);
+                    }
+                }
+            });
+        },
+        oneditresize: resizeDialog
+    });
+})();
+</script>
+
+<!--Help text shown for the ros2-publisher node-->
+<script type="text/html" data-help-name="publisher">
+    <p> This node represents a ROS 2 publisher. It is able of publishing messages on a specific topic. By using this node, you can configure the following ROS 2 settings: </p>
+    <p> - Topic: Element that acts as a bus for nodes to exchange messages.</p>
+    <p> - Domain id: Value used to segment the network in order to avoid interference between different groups of computers running ROS 2 on the same local area network. 
+        Machines with different domain IDs will not talk, nor interfere, with each other. </p>
+    <p> - QoS: Policies that allow you to tune communication between nodes, as they define how each entity will behave. </p>
+</script>
