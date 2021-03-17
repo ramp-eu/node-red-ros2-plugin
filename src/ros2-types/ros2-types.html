@@ -12,6 +12,31 @@
 	        <option></option>
 	</select>
     </div>
+
+    <div class="form-row" id="editors">
+        <p id=button-idl-editor style="display:none"><i class="fa fa-chevron-down"></i>&nbsp;&nbsp; IDL Code</p>
+        <div class="form-row" id="idl-editor" style="display:none">
+            <div class="form-row" style="margin-bottom: 0px;">
+                <input type="hidden" id="node-input-idl" autofocus="autofocus">
+            </div>
+
+            <div class="form-row node-text-editor-row" style="position:relative">
+                <div style="height: 220px; min-height:120px; margin-top: 8px;" class="node-text-editor" id="node-input-idl-editor" ></div>
+            </div>
+        </div>
+
+        <p id=button-msg-editor style="display:none"><i class="fa fa-chevron-down"></i>&nbsp;&nbsp; MSG Code</p>
+        <div class="form-row" id="msg-editor" style="display:none">
+            <div class="form-row" style="margin-bottom: 0px;">
+                <input type="hidden" id="node-input-message" autofocus="autofocus">
+            </div>
+
+            <div class="form-row node-text-editor-row" style="position:relative">
+                <div style="height: 250px; min-height:150px; margin-top: 8px;" class="node-text-editor" id="node-input-msg-editor" ></div>
+            </div>
+        </div>
+    </div>
+
 </script>
 
 <!--Node style definition-->
@@ -32,6 +57,48 @@
         },
         oneditprepare: function() 
         {
+            var buildEditor = function(id, value, defaultValue) {
+                var editor = RED.editor.createEditor({
+                    id: id,
+                    mode: 'ace/mode/text',
+                    value: value || defaultValue || "",
+                    globals: {
+                        msg:true,
+                        context:true,
+                        RED: true,
+                        util: true,
+                        flow: true,
+                        global: true,
+                        console: true,
+                        Buffer: true,
+                        setTimeout: true,
+                        clearTimeout: true,
+                        setInterval: true,
+                        clearInterval: true
+                    },
+                    readOnly: true
+                });
+                if (defaultValue && value === "") {
+                    editor.moveCursorTo(defaultValue.split("\n").length - 1, 0);
+                }
+                return editor;
+            };
+
+            var getHeight = function()
+            {
+                var rows = $("#dialog-form>div:not(#editors)");
+                var height = $("#dialog-form").height();
+                console.log(height);
+                console.log(rows);
+                for (var i=0; i<rows.length; i++) {
+                    height -= $(rows[i]).outerHeight(true);
+                }
+                var editorRow = $("#dialog-form>div#editors");
+                height -= (parseInt(editorRow.css("marginTop"))+parseInt(editorRow.css("marginBottom"))) + 20;
+                height /= 2;
+                return height;
+            };
+
             //Gets the IS ROS 2 compiled packages and add them to the packages selector
             $.getJSON('ros2packages', function(data) 
             {
@@ -56,7 +123,67 @@
                     });
                 });
             });
-	    }
+            $("#button-msg-editor").click(function(){
+                console.log("Button Clicked");
+                $("#msg-editor").toggle();
+            });
+
+            $("#button-idl-editor").click(function(){
+                console.log("Button Clicked");
+                $("#idl-editor").toggle();
+            });
+
+            $("#node-input-msg").change(function() 
+            {
+                console.log(getHeight());
+                if (!this.initEditor)
+                {
+                    this.initEditor = buildEditor("node-input-msg-editor",$("#node-input-message").val())
+                }
+                $("#node-input-msg-editor").css("height", (getHeight())+"px");
+                this.initEditor.resize();
+                $("#button-msg-editor").show();
+
+                if (!this.editor)
+                {
+                    this.editor = buildEditor('node-input-idl-editor',$("#node-input-idl").val())
+                }
+                $("#node-input-idl-editor").css("height", (getHeight())+"px");
+                this.editor.resize();
+                $("#button-idl-editor").show();
+                $("#idl-editor").show();
+
+                var node = this;
+                
+                $.getJSON('msgidl', { package: $("#node-input-package").val().toString(), msg: $("#node-input-msg").val().toString() },  function(msg) 
+                {
+                    node.editor.getSession().getDocument().setValue(msg["idl"]);
+                    node.initEditor.getSession().getDocument().setValue(msg["msg"]);
+                });
+            });
+        },
+        oneditsave: function() {
+            var node = this;
+
+            var disposeEditor = function(editorName,targetName,defaultValue) {
+                var editor = node[editorName];
+                editor.destroy();
+                delete node[editorName];
+                $("#"+targetName).val(val);
+            }
+            disposeEditor("editor","node-input-idl");
+            disposeEditor("initEditor","node-input-message");
+
+        },
+        oneditcancel: function() {
+            var node = this;
+
+            node.editor.destroy();
+            delete node.editor;
+
+            node.initEditor.destroy();
+            delete node.initEditor;
+        }
     });
 </script>
 

@@ -3,7 +3,9 @@ module.exports = function(RED)
 {
     var fs = require('fs');
     var home = process.env.HOME;
+    var ros2_home = process.env.AMENT_PREFIX_PATH;
     var packages_path = "";
+    var idl_path = "";
 
     /* 
      * @function ROS2Types constructor
@@ -43,6 +45,7 @@ module.exports = function(RED)
         if (index != -1)
         {
             packages_path = line.substr(0, index);
+            idl_path = line.substr(index+1, line.length-1);
         }
         var files = fs.readdirSync(packages_path);
         
@@ -56,5 +59,38 @@ module.exports = function(RED)
         
         var files = fs.readdirSync(msgs_path);
         res.json(files);
+    });
+
+    //Function that pass the selected message idl and msg codes
+    RED.httpAdmin.get("/msgidl", RED.auth.needsPermission('ROS2 Type.read'), function(req,res) 
+    {
+        //IDL
+        var index = idl_path.indexOf('\n');
+        if (index != -1)
+        {
+            idl_path = idl_path.substr(0, index);
+        }
+        var hpp_msg_path = idl_path + "/" + req.query["package"] + "/msg/convert__msg__" + req.query["msg"] + ".hpp";
+        
+        var content = fs.readFileSync(hpp_msg_path).toString();
+        var idl_begin = content.indexOf("~~~(");
+        if (idl_begin != -1)
+        {
+            content = content.substr(idl_begin+4); //Remove also the '~~~(' characters
+        }
+        var idl_end = content.indexOf(")~~~");
+        var json_data = {}
+        if (idl_end != -1)
+        {
+            var idl = content.substr(0, idl_end);
+            json_data["idl"] = idl;
+        }
+
+        //MSG
+        hpp_msg_path = ros2_home + "/share/" + req.query["package"] + "/msg/" + req.query["msg"] + ".msg";
+            
+        var content = fs.readFileSync(hpp_msg_path).toString();
+        json_data["msg"] = content;
+        res.json(json_data);
     });
 }
