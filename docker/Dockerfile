@@ -1,63 +1,43 @@
+FROM ros:foxy
 
+# BEWARE: shared memory will not work by default with this Docker.
+# Please run it with -v /dev/shm:/dev/shm option or compile the docker image with FastDDS with no SHM_DEFAULT=ON.
 
-ARG NODE_VERSION=10.19.0-slim
-FROM node:${NODE_VERSION}
-ARG GITHUB_ACCOUNT=jason-fox
-ARG GITHUB_REPOSITORY=TTE.project1
-ARG DOWNLOAD=latest
-ARG SOURCE_BRANCH=master
+# Dependencies
+RUN apt-get install -f
+RUN apt-get update
 
-ENV GITHUB_ACCOUNT=${GITHUB_ACCOUNT}
-ENV GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
-ENV DOWNLOAD=${DOWNLOAD}
+# Install Integration Service dependencies
+RUN apt-get install -y libyaml-cpp-dev
+RUN apt-get install -y libboost-dev
+RUN apt-get install -y libboost-program-options-dev
+RUN apt-get install -y libwebsocketpp-dev
 
-RUN apt-get update && \
-	# Ensure that unzip, wget and curl are installed
-	apt-get install -y --no-install-recommends unzip ca-certificates curl wget && \
-	if [ "${DOWNLOAD}" = "latest" ] ; \
-	then \
-		RELEASE="${SOURCE_BRANCH}"; \
-		echo "INFO: Building Latest Development from ${SOURCE_BRANCH} branch."; \
-	elif [ "${DOWNLOAD}" = "stable" ]; \
-	then \
-		RELEASE=$(curl -s https://api.github.com/repos/"${GITHUB_ACCOUNT}"/"${GITHUB_REPOSITORY}"/releases/latest | grep 'tag_name' | cut -d\" -f4); \
-		echo "INFO: Building Latest Stable Release: ${RELEASE}"; \
-	else \
-	 	RELEASE="${DOWNLOAD}"; \
-	 	echo "INFO: Building Release: ${RELEASE}"; \
-	fi && \
-	RELEASE_CONCAT=$(echo "${RELEASE}" | tr / -); \
-	wget --no-check-certificate -O source.zip https://github.com/"${GITHUB_ACCOUNT}"/"${GITHUB_REPOSITORY}"/archive/"${RELEASE}".zip && \
-	unzip source.zip && \
-	rm source.zip && \
-	mv "${GITHUB_REPOSITORY}-${RELEASE_CONCAT}" /opt/component && \
-	# Remove unzip and clean apt cache
-	apt-get clean && \
-	apt-get remove -y unzip && \
-	apt-get -y autoremove && \
-	rm -rf /var/lib/apt/lists/* 
+# Install node.js
+RUN apt-get install -y curl
+RUN curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh
+RUN chmod +x nodesource_setup.sh && sudo sh -c ./nodesource_setup.sh
+RUN apt-get install -y nodejs
 
-WORKDIR /opt/component
+# Install Node-RED
+RUN npm install -g --unsafe-perm node-red
 
-RUN \
-	# Ensure that Git is installed prior to running npm install
-	apt-get update && \
-	apt-get install -y --no-install-recommends git && \
-	npm install pm2@3.2.2 -g && \
-	echo "INFO: npm install --production..." && \
-	npm install --production && \
-	# Remove Git and clean apt cache
-	apt-get clean && \
-	apt-get remove -y git && \
-	apt-get -y autoremove && \
-	chmod +x docker/entrypoint.sh && \
-	apt-get clean && \
-	rm -rf /var/lib/apt/lists/*
+# Prepare Integration Service workspace
+RUN apt-get install -y git
+RUN mkdir -p /is_ws/src
+WORKDIR /is_ws/src
+RUN git clone https://github.com/eProsima/soss.git -b feature/node-red-support is
+RUN git clone https://github.com/eProsima/xtypes.git --recursive xtypes
+WORKDIR /is_ws
 
-USER node
-ENV NODE_ENV=production
+# Compile the Integration Service
+RUN . /opt/ros/foxy/setup.sh && \
+    colcon build --packages-up-to soss-ros2-test soss-websocket-test --cmake-args -DCMAKE_BUILD_TYPE=RELEASE --install-base /opt/is
 
-# Expose 8080
-EXPOSE 8080
+# Install node-red-plugin
+RUN mkdir -p /nodered_ws/src
+WORKDIR /nodered_ws/src
+RUN git clone https://github.com/ramp-eu/node-red-ros2-plugin.git -b feature/first_nodes
+WORKDIR /usr/lib
+RUN npm install /nodered_ws/src/node-red-ros2-plugin
 
-ENTRYPOINT ["docker/entrypoint.sh"]
