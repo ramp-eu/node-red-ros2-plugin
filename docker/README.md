@@ -4,7 +4,7 @@ The [Dockerfile](https://github.com/ramp-eu/node-red-ros2-plugin/blob/feature/fi
 be used to build a docker image:
 
 ```console
-docker build -f Dockerfile -t node-red-ros2-plugin
+docker build -f Dockerfile -t node-red-ros2-plugin .
 ```
 
 ## How to use the plugin 
