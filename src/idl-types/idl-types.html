@@ -25,7 +25,7 @@
         defaults: 
         {
             name: { value:"HelloWorld" },
-            func: { value:"\nstruct HelloWorld {\n\tstring msg;\n};" }
+            func: { value:"struct HelloWorld {\n\tstring msg;\n};" }
         },
         inputs:1,
         outputs:1,
@@ -46,7 +46,7 @@
             {
                 var editor = RED.editor.createEditor({
                     id: id,
-                    mode: 'ace/mode/idl',
+                    mode: 'ace/mode/text',
                     value: value || defaultValue || "",
                     globals: 
                     {
@@ -124,6 +124,13 @@
         oneditsave: function() 
         {
             var node = this;
+
+            $.getJSON('checkidl', { idl: node["editor"].getValue().toString() }, function(result) 
+            {
+                var error = result.replace("PEGLIB_PARSER", "IDL Type Parser").replaceAll("<", "'").replaceAll(">", "");
+                console.log(error);
+                RED.notify(node._(error,{message:node._("inject.errors.failed")}),"error");
+            });
 
             var disposeEditor = function(editorName,targetName,defaultValue) 
             {
