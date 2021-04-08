@@ -16,6 +16,10 @@ module.exports = function(RED)
         this.props = config.props;
         var node = this;
 
+        RED.events.on("deploy", function() {
+            console.log("Deployed");
+        });
+
         // Registers a listener to the input event, 
         // which will be called whenever a message arrives at this node
         node.on('input', function(msg) 
