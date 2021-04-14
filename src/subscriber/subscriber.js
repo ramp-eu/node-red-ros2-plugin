@@ -1,7 +1,11 @@
+const { send } = require('process');
+
 // RED argument provides the module access to Node-RED runtime api
 module.exports = function(RED)
 {
+    var events = require('events');
     var fs = require('fs');
+    var is_web_api = require('/usr/lib/IS-Web-API/configuration');
     /* 
      * @function SubscriberNode constructor
      * This node is defined by the constructor function SubscriberNode, 
@@ -16,22 +20,54 @@ module.exports = function(RED)
         this.props = config.props;
         var node = this;
 
+        let {color, message} = is_web_api.add_subscriber(config['id'], config["topic"], config['selectedtype']);
+        if (message && color)
+        {
+            node.status({ fill: color, shape: "dot", text: message });
+        }
+
+        // Event emitted when the deploy is finished
+        RED.events.once('flows:started', function() {
+            let {color, message, event_emitter} = is_web_api.launch(config['id']);
+            if (message && color)
+            {
+                node.status({ fill: color, shape: "dot", text: message});
+            }
+            if (event_emitter)
+            {
+                // Event emitted when a new message is received
+                event_emitter.on(config["topic"] + '_data', function(msg_json)
+                {
+                    node.send(msg_json['msg']);
+                });
+                
+            }
+        });
+
         // Registers a listener to the input event, 
         // which will be called whenever a message arrives at this node
         node.on('input', function(msg) 
         {
-            node.status({ fill: "green", shape: "dot", text: "message"});
+            node.status({ fill: "green", shape: "dot", text: "message" });
 
             // Passes the message to the next node in the flow
             node.send(msg);
         });
+
+        // Called when there is a re-deploy or the program is closed 
+        node.on('close', function()
+        {
+            // Stops the IS execution and resets the yaml
+            is_web_api.new_config();
+            is_web_api.stop();
+        });
     }
 
-    // The node is registered in the runtime using the name subscriber 
-    RED.nodes.registerType("subscriber", SubscriberNode);
+    // The node is registered in the runtime using the name Subscriber 
+    RED.nodes.registerType("Subscriber", SubscriberNode);
 
     //Function that sends to the html file the qos descriptions read from the json file
-    RED.httpAdmin.get("/subqosdescription", RED.auth.needsPermission('subscriber.read'), function(req,res) 
+    RED.httpAdmin.get("/subqosdescription", RED.auth.needsPermission('Subscriber.read'), function(req,res) 
     {
         var description_path = __dirname + "/../qos-description.json";  
         var rawdata  = fs.readFileSync(description_path);

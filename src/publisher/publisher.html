@@ -1,5 +1,5 @@
 <!--Properties that can be configured for this node-->
-<script type="text/html" data-template-name="publisher">
+<script type="text/html" data-template-name="Publisher">
     <div class="form-row">
         <label for="node-input-topic"><i class="fa fa-tag"></i>&nbsp;&nbsp; Topic </label>
         <input type="text" id="node-input-topic" placeholder="Topic">
@@ -33,7 +33,7 @@
         height -= 6;
 	    $("#node-input-property-container").editableList('height',height);
     }
-    RED.nodes.registerType('publisher', 
+    RED.nodes.registerType('Publisher', 
     {
         category: 'ROS 2',
         color: '#77b4ea',
@@ -41,17 +41,58 @@
         {
             topic: { value: "", required: true},
             domain: { value: "0" },
-            props: { value:[] }
+            props: { value:[] },
+            selectedtype: { value: "" }
         },
         inputs: 1,
         outputs: 1,
         icon: "ros2-icon.png",
         label: function() 
         {
-            return this.name || "ros2-publisher";
+            return "ROS2 Publisher";
         },
         oneditprepare: function() 
         {
+            var node = this;
+
+            var linked = false;
+            RED.nodes.eachLink( function(n)
+            {
+                if (n.target.id == node.id)
+                {
+                    switch(n.source.type)
+                    {
+                        case "ROS2 Type":
+                            linked = true;
+                            if (n.source.validationErrors.length > 0)
+                            {
+                                RED.notify("The type must be configured before", "error");
+                            }
+                            else
+                            {
+                                node.selectedtype = n.source.ros2pkg + '/' + n.source.ros2message;
+                            }
+                            break;
+                        case "IDL Type":
+                            linked = true;
+                            if (n.source.validationErrors.length > 0)
+                            {
+                                RED.notify("The type must be configured before", "error");
+                            }
+                            else
+                            {
+                                node.selectedtype = n.source.name;
+                            }
+                            break;
+                    }
+                }
+            });
+
+            if(!linked)
+            {
+                RED.notify("The publisher must be connected to a type", "error");
+            }
+
             $(".red-ui-tray-content form").width("615px"); 
 
             $('#node-input-property-container').css('min-height','120px').css('min-width','450px').editableList({
@@ -195,8 +236,8 @@
 })();
 </script>
 
-<!--Help text shown for the ros2-publisher node-->
-<script type="text/html" data-help-name="publisher">
+<!--Help text shown for the ROS2 Publisher node-->
+<script type="text/html" data-help-name="Publisher">
     <p> This node represents a ROS 2 publisher. It is able of publishing messages on a specific topic. By using this node, you can configure the following ROS 2 settings: </p>
     <p> - Topic: Element that acts as a bus for nodes to exchange messages.</p>
     <p> - Domain id: Value used to segment the network in order to avoid interference between different groups of computers running ROS 2 on the same local area network. 

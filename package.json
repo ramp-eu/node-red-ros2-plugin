@@ -21,7 +21,9 @@
     "lint:md": "remark  -f '*.md' 'docker/*.md' 'docs/*.md'",
     "lint:text": "textlint 'README.md' 'docs/*.md'"
   },
-  "dependencies": {},
+  "dependencies": {
+    "cron": "^1.8.2"
+  },
   "devDependencies": {
     "coveralls": "^3.1.0",
     "eslint": "~7.5.0",
@@ -39,7 +41,9 @@
     "textlint-rule-terminology": "~2.1.4",
     "textlint-rule-write-good": "~1.6.2"
   },
-  "keywords": ["ros2"],
+  "keywords": [
+    "ros2"
+  ],
   "husky": {
     "hooks": {
       "pre-commit": "lint-staged"
@@ -72,7 +76,8 @@
       "publisher": "src/publisher/publisher.js",
       "subscriber": "src/subscriber/subscriber.js",
       "IDL Type": "src/idl-types/idl-types.js",
-      "ROS 2 Type": "src/ros2-types/ros2-types.js"
+      "ROS 2 Type": "src/ros2-types/ros2-types.js",
+      "ROS2 Inject": "src/ros2-message-inject/ros2-message-inject.js"
     }
   }
 }

@@ -1,16 +1,18 @@
 <!--Properties that can be configured for this node-->
 <script type="text/html" data-template-name="ROS2 Type">
     <div class="form-row">
-        <label for="node-input-package"><i class="fa fa-archive"></i>&nbsp;&nbsp; Package</label>
-        <select id="node-input-package">
-	        <option></option>
+        <label for="node-input-ros2package"><i class="fa fa-archive"></i>&nbsp;&nbsp; Package</label>
+        <select id="node-input-ros2package-select">
+	        <option value=""></option>
         </select>
+        <input id="node-input-ros2pkg" type="hidden">
     </div>
     <div class="form-row">
-        <label for="node-input-msg"><i class="fa fa-envelope"></i>&nbsp;&nbsp; Message </label>
-        <select id="node-input-msg">
-	        <option></option>
-	</select>
+        <label for="node-input-ros2msg"><i class="fa fa-envelope"></i>&nbsp;&nbsp; Message </label>
+        <select id="node-input-ros2msg-select">
+	        <option value=""></option>
+	    </select>
+        <input id="node-input-ros2message" type="hidden">
     </div>
 
     <div class="form-row" id="editors">
@@ -47,16 +49,38 @@
         color: "#fdd0a2",
         defaults: 
         {
+            ros2pkg: {value: "", required: true},
+            ros2message: {value: "", required: true}
         },
         inputs: 1,
         outputs: 1,
         icon: "ros2-icon.png",
         label: function() 
         {
-            return "ROS2 Type";
+            if (this.ros2pkg && this.ros2message)
+            {
+                return this.ros2pkg + '/' + this.ros2message;
+            }
+            else 
+            {
+                return "ROS2 Type";
+            }
         },
         oneditprepare: function() 
         {
+            var node = this;
+
+            if (this.ros2pkg)
+            {
+                $("#node-input-ros2package-select").empty();
+                $("<option value='" + this.ros2pkg + "'>" + this.ros2pkg + "</option>").appendTo("#node-input-ros2package-select");
+            }
+            if (this.ros2message)
+            {
+                $("#node-input-ros2msg-select").empty();
+                $("<option value='" + this.ros2message + "'>" + this.ros2message + "</option>").appendTo("#node-input-ros2msg-select");
+            }
+
             var buildEditor = function(id, value, defaultValue) {
                 var editor = RED.editor.createEditor({
                     id: id,
@@ -88,8 +112,6 @@
             {
                 var rows = $("#dialog-form>div:not(#editors)");
                 var height = $("#dialog-form").height();
-                console.log(height);
-                console.log(rows);
                 for (var i=0; i<rows.length; i++) {
                     height -= $(rows[i]).outerHeight(true);
                 }
@@ -99,83 +121,117 @@
                 return height;
             };
 
-            //Gets the IS ROS 2 compiled packages and add them to the packages selector
-            $.getJSON('ros2packages', function(data) 
-            {
-                $.each(data, function(i, package) 
+            $("#node-input-ros2package-select").mousedown(function () {
+                if (!$("#node-input-ros2package-select").is(":focus"))
                 {
-                    $("<option value='" + package + "'>" + package + "</option>").appendTo("#node-input-package");
-                });
+                    //Gets the IS ROS 2 compiled packages and add them to the packages selector
+                    $.getJSON('ros2packages', function(data) 
+                    {
+                        $("#node-input-ros2package-select").empty();
+                        $("<option></option>").appendTo("#node-input-ros2package-select");
+                        $.each(data, function(i, package) 
+                        {
+                            $("<option value='" + package + "'>" + package + "</option>").appendTo("#node-input-ros2package-select");
+                        });
+                    });
+                }
             });
 
             //Everytime the packages selector changes, it gets the IS ROS 2 selected package messages and add them 
             //to the messages selector
-            $("#node-input-package").change(function() 
+            $("#node-input-ros2package-select").change(function() 
             {
-                $.getJSON('ros2msgs', { package: $("#node-input-package").val().toString() },  function(set) 
+                $.getJSON('ros2msgs', { package: $("#node-input-ros2package-select").val().toString() },  function(set) 
                 {
-                    $("#node-input-msg").empty();
-                    $("<option></option>").appendTo("#node-input-msg");
+                    $("#node-input-ros2msg-select").empty();
+                    $("<option></option>").appendTo("#node-input-ros2msg-select");
                     $.each(set, function(i, message) 
                     {
                         message = message.replace('.mix', '');
-                        $("<option value='" + message + "'>" + message + "</option>").appendTo("#node-input-msg");
+                        $("<option value='" + message + "'>" + message + "</option>").appendTo("#node-input-ros2msg-select");
                     });
                 });
             });
-            $("#button-msg-editor").click(function(){
-                console.log("Button Clicked");
+
+            $("#button-msg-editor").click(function()
+            {
                 $("#msg-editor").toggle();
             });
 
-            $("#button-idl-editor").click(function(){
-                console.log("Button Clicked");
+            $("#button-idl-editor").click(function()
+            {
                 $("#idl-editor").toggle();
             });
 
-            $("#node-input-msg").change(function() 
+            $("#node-input-ros2msg-select").mousedown(function () {
+                if (!$("#node-input-ros2msg-select").is(":focus"))
+                {
+                    $.getJSON('ros2msgs', { package: $("#node-input-ros2package-select").val().toString() },  function(set) 
+                    {
+                        $("#node-input-ros2msg-select").empty();
+                        $("<option></option>").appendTo("#node-input-ros2msg-select");
+                        $.each(set, function(i, message) 
+                        {
+                            message = message.replace('.mix', '');
+                            $("<option value='" + message + "'>" + message + "</option>").appendTo("#node-input-ros2msg-select");
+                        });
+                    });
+                }
+            });
+
+            $("#node-input-ros2msg-select").change(function() 
             {
-                console.log(getHeight());
+                this.message = {};
                 if (!this.initEditor)
                 {
-                    this.initEditor = buildEditor("node-input-msg-editor",$("#node-input-message").val())
+                    this.initEditor = buildEditor("node-input-msg-editor", $("#node-input-message").val())
                 }
                 $("#node-input-msg-editor").css("height", (getHeight())+"px");
                 this.initEditor.resize();
-                $("#button-msg-editor").show();
 
                 if (!this.editor)
                 {
-                    this.editor = buildEditor('node-input-idl-editor',$("#node-input-idl").val())
+                    this.editor = buildEditor('node-input-idl-editor', $("#node-input-idl").val())
                 }
                 $("#node-input-idl-editor").css("height", (getHeight())+"px");
                 this.editor.resize();
-                $("#button-idl-editor").show();
-                $("#idl-editor").show();
 
-                var node = this;
+                var n = this;
                 
-                $.getJSON('msgidl', { package: $("#node-input-package").val().toString(), msg: $("#node-input-msg").val().toString() },  function(msg) 
+                $.getJSON('msgidl', { package: $("#node-input-ros2package-select").val().toString(), 
+                    msg: $("#node-input-ros2msg-select").val().toString() },  function(msg) 
                 {
-                    node.editor.getSession().getDocument().setValue(msg["idl"]);
-                    node.initEditor.getSession().getDocument().setValue(msg["msg"]);
+                    n.editor.getSession().getDocument().setValue(msg["idl"]);
+                    n.initEditor.getSession().getDocument().setValue(msg["msg"]);
+
+                    $("#button-msg-editor").show();
+                    $("#button-idl-editor").show();
+                    $("#idl-editor").show();
                 });
             });
         },
-        oneditsave: function() {
+        oneditsave: function() 
+        {
             var node = this;
 
-            var disposeEditor = function(editorName,targetName,defaultValue) {
+            $("#node-input-ros2pkg").val($("#node-input-ros2package-select").val().toString());
+            $("#node-input-ros2message").val($("#node-input-ros2msg-select").val().toString());
+
+            var disposeEditor = function(editorName, targetName, defaultValue) 
+            {
                 var editor = node[editorName];
-                editor.destroy();
-                delete node[editorName];
-                $("#"+targetName).val(val);
+                if (editor != undefined)
+                {
+                    editor.destroy();
+                    delete node[editorName];
+                }
             }
             disposeEditor("editor","node-input-idl");
             disposeEditor("initEditor","node-input-message");
 
         },
-        oneditcancel: function() {
+        oneditcancel: function() 
+        {
             var node = this;
 
             node.editor.destroy();

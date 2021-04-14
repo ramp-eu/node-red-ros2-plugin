@@ -6,12 +6,12 @@
     </div>
 
     <div class="form-row" style="margin-bottom: 0px;">
-        <input type="hidden" id="node-input-func" autofocus="autofocus">
+        <input type="hidden" id="node-input-idltype" autofocus="autofocus">
     </div>
 
     <div class="form-row node-text-editor-row" style="position:relative">
         <div style="position: absolute; right:0; bottom: calc(100% + 3px);"><button id="node-function-expand-js" class="red-ui-button red-ui-button-small"><i class="fa fa-expand"></i></button></div>
-        <div style="height: 220px; min-height:120px; margin-top: 30px;" class="node-text-editor" id="node-input-func-editor" ></div>
+        <div style="height: 220px; min-height:120px; margin-top: 30px;" class="node-text-editor" id="node-input-idltype-editor" ></div>
     </div>
 
 </script>
@@ -24,8 +24,8 @@
         category: 'ROS 2',
         defaults: 
         {
-            name: { value:"HelloWorld" },
-            func: { value:"struct HelloWorld {\n\tstring msg;\n};" }
+            name: { value: "", required: true },
+            idltype: { value: "struct HelloWorld {\n\tstring msg;\n};" }
         },
         inputs:1,
         outputs:1,
@@ -70,7 +70,7 @@
                 }
                 return editor;
             }
-            this.editor = buildEditor('node-input-func-editor',$("#node-input-func").val())
+            this.editor = buildEditor('node-input-idltype-editor',$("#node-input-idltype").val())
             RED.library.create({
                 url:"idl-type", // where to get the data from
                 type:"type", // the type of object the library is for
@@ -128,7 +128,6 @@
             $.getJSON('checkidl', { idl: node["editor"].getValue().toString() }, function(result) 
             {
                 var error = result.replace("PEGLIB_PARSER", "IDL Type Parser").replaceAll("<", "'").replaceAll(">", "");
-                console.log(error);
                 RED.notify(node._(error,{message:node._("inject.errors.failed")}),"error");
             });
 
@@ -155,7 +154,7 @@
                 delete node[editorName];
                 $("#"+targetName).val(val);
             }
-            disposeEditor("editor","node-input-func");
+            disposeEditor("editor","node-input-idltype");
 
         },
         oneditcancel: function() 
@@ -179,7 +178,7 @@
             this.editor.resize();
 
             var height = size.height;
-            $("#node-input-func-editor").css("height", (height -145)+"px");
+            $("#node-input-idltype-editor").css("height", (height -145)+"px");
 
             this.editor.resize();
         }
