@@ -217,11 +217,15 @@
                             }
                             else
                             {
-                                if (node.ros2type != "" && node.ros2type != n.target.ros2pkg + '/' + n.target.ros2message)
+                                if (node.ros2type != n.target.ros2pkg + '/' + n.target.ros2message)
                                 {
-                                    node.props = [];
+                                    if (node.ros2type != "")
+                                    {
+                                        node.props = [];
+                                    }
                                     node.ros2type = n.target.ros2pkg + '/' + n.target.ros2message;
                                 }
+                                
                                 $.getJSON('getidl', { package: n.target.ros2pkg, msg: n.target.ros2message }, function(idl)
                                 {
                                     Object.keys(idl).forEach( function(struct)
