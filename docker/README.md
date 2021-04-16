@@ -14,6 +14,10 @@ docker build -f Dockerfile -t node-red-ros2-plugin .
 ```console
 docker run --rm --net=host -ti node-red-ros2-plugin
 ```
+- Execute the [Integration Service](https://github.com/eProsima/soss) bash script
+```console
+. /opt/is/local_setup.bash
+```
 - Run Node-RED using `/data/` as user directory:
 
 ```console
