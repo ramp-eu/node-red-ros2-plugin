@@ -26,18 +26,28 @@ RUN npm install -g --unsafe-perm node-red
 RUN apt-get install -y git
 RUN mkdir -p /is_ws/src
 WORKDIR /is_ws/src
-RUN git clone https://github.com/eProsima/soss.git -b feature/node-red-support is
+RUN git clone https://github.com/eProsima/soss.git -b feature/soss-core-to-is-core is
 RUN git clone https://github.com/eProsima/xtypes.git --recursive xtypes
+RUN git clone https://github.com/eProsima/WebSocket-SH.git
+RUN git clone https://github.com/eProsima/ROS2-SH.git
 WORKDIR /is_ws
 
 # Compile the Integration Service
 RUN . /opt/ros/foxy/setup.sh && \
-    colcon build --packages-up-to soss-ros2-test soss-websocket-test --cmake-args -DCMAKE_BUILD_TYPE=RELEASE --install-base /opt/is
+    colcon build --packages-up-to is-ros2-test is-websocket --cmake-args -DCMAKE_BUILD_TYPE=RELEASE --install-base /opt/is
+RUN . /opt/is/local_setup.sh
+
+# Install IS-Web-API
+RUN mkdir -p /iswebapi_ws/
+WORKDIR /iswebapi_ws/
+RUN git clone https://github.com/eProsima/IS-Web-API.git -b feature/node-red-support
+RUN mkdir -p /iswebapi_ws/IS-Web-API/build
+WORKDIR /iswebapi_ws/IS-Web-API/build
+RUN cmake .. && make
 
 # Install node-red-plugin
 RUN mkdir -p /nodered_ws/src
 WORKDIR /nodered_ws/src
-RUN git clone https://github.com/ramp-eu/node-red-ros2-plugin.git -b feature/first_nodes
+RUN git clone https://github.com/ramp-eu/node-red-ros2-plugin.git -b feature/ros2-connection
 WORKDIR /usr/lib
 RUN npm install /nodered_ws/src/node-red-ros2-plugin
-
