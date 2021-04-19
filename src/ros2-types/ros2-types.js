@@ -27,7 +27,7 @@ module.exports = function(RED)
         RED.nodes.createNode(this, config);
         var node = this;
 
-        let {color, message} = is_web_api.add_ros2_type(config.ros2pkg, config.ros2message);
+        let {color, message} = is_web_api.add_ros2_type(config.ros2pkg, config.ros2message, config.wires[0]);
         if (message && color)
         {
             node.status({ fill: color, shape: "dot", text: message});
@@ -147,5 +147,10 @@ module.exports = function(RED)
             json_data["msg"] = content;
             res.json(json_data);
         }
+    });
+
+    RED.httpAdmin.get("/updateconnections", RED.auth.needsPermission('ROS2 Type.read'), function(req,res)
+    {
+        is_web_api.register_connection(req.query['type'], req.query['wire'], req.query['restart']);
     });
 }

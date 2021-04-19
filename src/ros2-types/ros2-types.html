@@ -214,6 +214,34 @@
         {
             var node = this;
 
+            var restart = true;
+
+            RED.nodes.eachLink( function(n)
+            {
+                if (n.source.id == node.id) // Output connection
+                {
+                    switch(n.target.type)
+                    {
+                        case 'Publisher':
+                        case 'Subscriber':
+                            $.getJSON('updateconnections', { type: $("#node-input-ros2package-select").val().toString()
+                            + '/' + $("#node-input-ros2msg-select").val().toString(), wire: n.target.id, restart: restart}, function()
+                            { });
+                            restart = false;
+                            break;
+                    }
+                }
+                else if (n.target.id == node.id) // Input connection
+                {
+                    switch(n.source.type)
+                    {
+                        case 'ROS2 Inject':
+                            RED.notify("The type has been changed, open inject node and fill the new fields", "warning");
+                            break;
+                    }
+                }
+            });
+
             $("#node-input-ros2pkg").val($("#node-input-ros2package-select").val().toString());
             $("#node-input-ros2message").val($("#node-input-ros2msg-select").val().toString());
 
