@@ -168,13 +168,15 @@
                 addItem: function(container, i, opt) {
                     var prop = opt;
                     if (!prop.hasOwnProperty('p')) {
-                        prop = {p:"",v:"",vt:"str"};
+                        prop = {p:"", v:"", vt:"str", t: ""};
                     }
                     container.css({
                         overflow: 'hidden',
                         whiteSpace: 'nowrap'
                     });
-                    var row = $('<div/>').appendTo(container);
+                    var row = $('<div/>', {id:"container-row"}).appendTo(container);
+
+                    row.attr("title", prop.t);
 
                     var propertyName = $('<input/>',{class:"node-input-prop-property-name",type:"text"})
                         .css("width","30%")
@@ -228,15 +230,25 @@
                                 
                                 $.getJSON('getidl', { package: n.target.ros2pkg, msg: n.target.ros2message }, function(idl)
                                 {
-                                    Object.keys(idl).forEach( function(struct)
+                                    //console.log(idl); //Array [[ 0: Struct name, 1: { member: type }], ...]
+                                    var custom_types = {};
+                                    var custom_struct = {};
+                                    idl.forEach( function(struct)
                                     {
-                                        Object.keys(idl[struct]).forEach( function(member)
+                                        console.log("Struct", struct);
+                                        if (struct[0] != n.target.ros2message)
                                         {
+                                            custom_struct[struct[0]] = [];
+                                        }
+                                        Object.keys(struct[1]).forEach( function(member)
+                                        {
+                                            console.log("Member", member, "Type", struct[1][member]);
                                             var type = "";
+                                            var default_value = "";
 
-                                            switch(idl[struct][member])
+                                            switch(struct[1][member])
                                             {
-                                                case 'std::string':
+                                                case 'string':
                                                 case 'char':
                                                 case 'char16_t':
                                                 case 'wchar_t':
@@ -258,25 +270,93 @@
                                                 case 'bool':
                                                     type = 'bool';
                                                     break;
-                                                default:
-                                                    type = 'json';
-                                                    break;
                                             }
 
-                                            var m = { p: member, v: '', vt: type };
-                                            var old = node.props.filter(p => p.p == m.p && p.vt != m.vt);
-                                            if (old.length > 0)
+                                            if (type == "")
                                             {
-                                                var idx = node.props.indexOf(old[0]);
-                                                node.props.splice(idx, 1);
+                                                var splitted = struct[1][member].split("_");
+                                                console.log("SPLITTED", splitted);
+                                                switch(splitted[0])
+                                                {
+                                                    case 'array':
+                                                    case 'sequence':
+                                                        type = 'json';
+                                                        default_value = "[]";
+                                                        break;
+                                                    case 'map':
+                                                    case 'enum':
+                                                    case 'union':
+                                                        type = 'json';
+                                                        default_value = "{}";
+                                                        break;
+                                                }
                                             }
-                                            if (!node.props.some(p => p.p == m.p && p.vt == m.vt))
+
+                                            // Main Struct Members
+                                            if (n.target.ros2message == struct[0])
                                             {
-                                                node.props.push(m);
+                                                // Basic Types
+                                                if (type != "")
+                                                {
+                                                    var m = { p: member, v: default_value, vt: type, t: struct[1][member] };
+                                                    var old = node.props.filter(p => p.p == m.p && p.vt != m.vt);
+                                                    if (old.length > 0)
+                                                    {
+                                                        var idx = node.props.indexOf(old[0]);
+                                                        node.props.splice(idx, 1);
+                                                    }
+                                                    if (!node.props.some(p => p.p == m.p && p.vt == m.vt))
+                                                    {
+                                                        node.props.push(m);
+                                                    }
+                                                }
+                                                // Custom Types
+                                                else if (type == "" && Object.keys(custom_struct).includes(struct[1][member]))
+                                                {
+                                                    custom_struct[struct[1][member]].forEach( function(mem)
+                                                    {
+                                                        var aux = {};
+                                                        aux.p = mem.p; aux.v = mem.v; aux.vt = mem.vt; aux.t = mem.t;
+                                                        aux.p = member + '.' + aux.p;
+                                                        var old = node.props.filter(p => p.p == aux.p && p.vt != aux.vt);
+                                                        if (old.length > 0)
+                                                        {
+                                                            var idx = node.props.indexOf(old[0]);
+                                                            node.props.splice(idx, 1);
+                                                        }
+                                                        if (!node.props.some(p => p.p == aux.p && p.vt == aux.vt))
+                                                        {
+                                                            node.props.push(aux);
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                            // Custom Structures
+                                            else if (n.target.ros2message != struct[0])
+                                            {
+                                                // Basic Types
+                                                if (type != "")
+                                                {
+
+                                                    custom_struct[struct[0]].push({ p: member, v: default_value, vt: type, t: struct[1][member]});
+                                                }
+                                                // Custom Types
+                                                else if (type == "" && Object.keys(custom_struct).includes(struct[1][member]))
+                                                {
+                                                    custom_struct[struct[1][member]].forEach( function(mem)
+                                                    {
+                                                        var aux = {};
+                                                        aux.p = mem.p; aux.v = mem.v; aux.vt = mem.vt; aux.t = mem.t;
+                                                        aux.p = member + '.' + aux.p;
+                                                        custom_struct[struct[0]].push(aux);
+                                                    });
+                                                }
                                             }
                                         });
+                                        console.log(custom_struct);
                                     });
                                     node.props.forEach(p => $("#node-input-property-container").editableList('addItem', p));
+                                    console.log("Props", node.props);
                                 });
                             }
                             break;
@@ -530,6 +610,69 @@
                 if (p.p) {
                     p.v = prop.find(".node-input-prop-property-value").typedInput('value');
                     p.vt = prop.find(".node-input-prop-property-value").typedInput('type');
+                    p.t = prop.find("#container-row").attr("title");
+
+                    console.log(p);
+                    switch(p.t)
+                    {
+                        case 'string':
+                        case 'char':
+                        case 'char16_t':
+                        case 'wchar_t':
+                            if (p.vt != 'str')
+                            {
+                                var error_msg = "Field " + p.p + " must be a string";
+                                RED.notify(error_msg, "error");
+                            }
+                            break;
+                        case 'float':
+                        case 'double':
+                        case 'long double':
+                        if (p.vt != 'num')
+                            {
+                                var error_msg = "Field " + p.p + " must be a floating point number";
+                                RED.notify(error_msg, "error");
+                            }
+                            break;
+                        case 'int8_t':
+                        case 'int16_t':
+                        case 'int32_t':
+                        case 'int64_t':
+                        case 'uint8_t':
+                        case 'uint16_t':
+                        case 'uint32_t':
+                        case 'uint64_t':
+                            if (p.vt != 'num')
+                            {
+                                var error_msg = "Field " + p.p + " must be a number";
+                                RED.notify(error_msg, "error");
+                            }
+                            if (!Number.isInteger(p.v))
+                            {
+                                var error_msg = "Field " + p.p + " must be an integer";
+                                RED.notify(error_msg, "error");
+                            }
+                            break;
+                        case 'bool':
+                            if (p.vt != 'bool')
+                            {
+                                var error_msg = "Field " + p.p + " must be a boolean";
+                                RED.notify(error_msg, "error");
+                            }
+                        default:
+                            var splitted = p.t.split("_");
+                            console.log("SPLITTED", splitted);
+                            switch(splitted[0])
+                            {
+                                case 'array':
+                                case 'sequence':
+                                case 'map':
+                                case 'enum':
+                                case 'union':
+                                    break;
+                            }
+                            break;
+                    }
                     node.props.push(p);
                 }
             });

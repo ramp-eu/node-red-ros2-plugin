@@ -130,6 +130,23 @@ module.exports = function(RED)
         return a;
     };
 
+    /**
+     * @brief Function to sort the type structures according to its dependencies
+     * @param {Array} result - Array for storing the sort result 
+     * @param {Array} visited - Array containing the objects already visited
+     * @param {Map} map - Map containing all the objects that need to be sorted
+     * @param {Object} obj  - Current object
+     */
+    function sort_util(result, visited, map, obj){
+        visited[obj[0]] = true;
+        Object.entries(obj[1]).forEach(function(dep){
+            if(!visited[dep[1]] && Object.keys(map).includes(dep[1])) {
+                sort_util(result, visited, map, map[dep[1]]);
+            } 
+        });
+        result.push(obj);
+    }
+
     // Function that returns the IDL associated with the selected message type
     RED.httpAdmin.get("/getidl", RED.auth.needsPermission("ROS2 Inject.write"), function(req,res) 
     {
@@ -194,12 +211,33 @@ module.exports = function(RED)
                         {
                             var member = stdout.substr(init_pos + 1, stdout.indexOf(']', pos) - init_pos - 1);
                             var data = member.split(',');
+                            var module_index = data[1].lastIndexOf('::');
+                            if (module_index != -1)
+                            {
+                                data[1] = data[1].substr(module_index + 2 /*::*/);
+                            }
                             type_dict[inner_name][data[0]] = data[1];
                             i++;
                         }
                     });
                 });
-                res.json(type_dict);
+
+                var map = {}; // Creates key value pair of name and object
+                var result = []; // the result array
+                var visited = {}; // takes a note of the traversed dependency
+
+                Object.entries(type_dict).forEach( function(obj){ // build the map
+                    map[obj[0]]  = obj;
+                });
+
+                Object.entries(type_dict).forEach(function(obj){ // Traverse array
+                    if(!visited[obj[0]]) { // check for visited object
+                        sort_util(result, visited, map, obj);
+                    }
+                });
+
+                console.log(result);
+                res.json(result);
             });
         }
     });
