@@ -196,6 +196,7 @@ module.exports = function(RED)
             execFile(path + "/xtypes_idl_validator", [String(idl)], function(error, stdout, stderr) {
                 // Defined Structure Position 
                 stdout = stdout.substr(stdout.indexOf('Struct Name:'));
+                console.log(stdout);
                 var occurences = locations('Struct Name:', stdout);
 
                 var i = 0;
@@ -211,11 +212,11 @@ module.exports = function(RED)
                         {
                             var member = stdout.substr(init_pos + 1, stdout.indexOf(']', pos) - init_pos - 1);
                             var data = member.split(',');
-                            var module_index = data[1].lastIndexOf('::');
-                            if (module_index != -1)
-                            {
-                                data[1] = data[1].substr(module_index + 2 /*::*/);
-                            }
+                            // var module_index = data[1].lastIndexOf('::');
+                            // if (module_index != -1)
+                            // {
+                            //     data[1] = data[1].substr(module_index + 2 /*::*/);
+                            // }
                             type_dict[inner_name][data[0]] = data[1];
                             i++;
                         }
