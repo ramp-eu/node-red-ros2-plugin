@@ -149,7 +149,7 @@
 
     var custom_struct = {};
 
-    RED.nodes.registerType('ROS2 Inject',{  
+    RED.nodes.registerType('ROS2 Inject',{
         category: 'ROS 2',
         color:"#a6bbcf",
         defaults: {
@@ -236,17 +236,17 @@
                                         level = level[level_name];
                                         previous_idx = index + 1;
                                         index = mem.p.indexOf('.', previous_idx);
-                                        
+
                                         if (index == -1)
                                         {
                                             level_name = mem.p.substr(previous_idx);
                                         }
-                                    }  
+                                    }
                                     switch(mem.vt)
                                     {
                                         case 'str':
                                             level[level_name] = ""; break;
-                                        case 'num': 
+                                        case 'num':
                                             level[level_name] = 0; break;
                                         case 'bool':
                                             level[level_name] = false; break;
@@ -273,7 +273,7 @@
                         .css("width", valueLength)
                         .appendTo(row)
                         .typedInput({default:'str', types:['str','num','bool','json']})
-                        .on('change', function(event, type, value) 
+                        .on('change', function(event, type, value)
                         {
                             prop.v = value;
                         });
@@ -293,7 +293,7 @@
                 sortable: true
             });
 
-            if (!node.props) 
+            if (!node.props)
             {
                 node.props = [];
             }
@@ -305,7 +305,7 @@
                 {
                     switch(n.target.type)
                     {
-                        case "ROS2 Type": 
+                        case "ROS2 Type":
                             if (n.target.validationErrors.length > 0)
                             {
                                 RED.notify("The type must be configured before", "error");
@@ -320,7 +320,7 @@
                                     }
                                     node.ros2type = n.target.ros2pkg + '/' + n.target.ros2message;
                                 }
-                                
+
                                 $.getJSON('getidl', { package: n.target.ros2pkg, msg: n.target.ros2message }, function(idl)
                                 {
                                     //Array [[ 0: Struct name, 1: { member: type }], ...]
@@ -405,7 +405,7 @@
                                                         aux.v = (is_container && Object.keys(types_dict).includes(mem.t)) ? "[]" : mem.v;
                                                         aux.vt = (is_container && Object.keys(types_dict).includes(mem.t)) ? "json" : mem.vt;
                                                         aux.p = member + '.' + aux.p;
-                                                        
+
                                                         var old = node.props.filter(p => p.p == aux.p && p.vt != aux.vt);
                                                         if (old.length > 0)
                                                         {
@@ -716,7 +716,7 @@
                         case 'array':
                             var length = p.t.substr(underscore_idx + 1);
                             underscore_idx = length.indexOf('_');
-                            
+
                             length = parseInt(length.substr(0, underscore_idx));
                             var type = p.t.substr( 6 +/*array_*/ underscore_idx + 1);
                             var elements = JSON.parse(p.v);
@@ -731,7 +731,7 @@
                                 var default_val = "";
                                 switch(type)
                                 {
-                                    case 'num': 
+                                    case 'num':
                                         default_val = 0; break;
                                     case 'bool':
                                         default_val = false; break;

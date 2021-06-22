@@ -43,11 +43,11 @@
 
 <!--Node style definition-->
 <script type="text/javascript">
-    RED.nodes.registerType('ROS2 Type', 
+    RED.nodes.registerType('ROS2 Type',
     {
         category: 'ROS 2',
         color: "#fdd0a2",
-        defaults: 
+        defaults:
         {
             ros2pkg: {value: "", required: true},
             ros2message: {value: "", required: true}
@@ -55,18 +55,18 @@
         inputs: 1,
         outputs: 1,
         icon: "ros2-icon.png",
-        label: function() 
+        label: function()
         {
             if (this.ros2pkg && this.ros2message)
             {
                 return this.ros2pkg + '/' + this.ros2message;
             }
-            else 
+            else
             {
                 return "ROS2 Type";
             }
         },
-        oneditprepare: function() 
+        oneditprepare: function()
         {
             var node = this;
 
@@ -125,11 +125,11 @@
                 if (!$("#node-input-ros2package-select").is(":focus"))
                 {
                     //Gets the IS ROS 2 compiled packages and add them to the packages selector
-                    $.getJSON('ros2packages', function(data) 
+                    $.getJSON('ros2packages', function(data)
                     {
                         $("#node-input-ros2package-select").empty();
                         $("<option></option>").appendTo("#node-input-ros2package-select");
-                        $.each(data, function(i, package) 
+                        $.each(data, function(i, package)
                         {
                             $("<option value='" + package + "'>" + package + "</option>").appendTo("#node-input-ros2package-select");
                         });
@@ -137,15 +137,15 @@
                 }
             });
 
-            //Everytime the packages selector changes, it gets the IS ROS 2 selected package messages and add them 
+            //Everytime the packages selector changes, it gets the IS ROS 2 selected package messages and add them
             //to the messages selector
-            $("#node-input-ros2package-select").change(function() 
+            $("#node-input-ros2package-select").change(function()
             {
-                $.getJSON('ros2msgs', { package: $("#node-input-ros2package-select").val().toString() },  function(set) 
+                $.getJSON('ros2msgs', { package: $("#node-input-ros2package-select").val().toString() },  function(set)
                 {
                     $("#node-input-ros2msg-select").empty();
                     $("<option></option>").appendTo("#node-input-ros2msg-select");
-                    $.each(set, function(i, message) 
+                    $.each(set, function(i, message)
                     {
                         message = message.replace('.mix', '');
                         $("<option value='" + message + "'>" + message + "</option>").appendTo("#node-input-ros2msg-select");
@@ -166,11 +166,11 @@
             $("#node-input-ros2msg-select").mousedown(function () {
                 if (!$("#node-input-ros2msg-select").is(":focus"))
                 {
-                    $.getJSON('ros2msgs', { package: $("#node-input-ros2package-select").val().toString() },  function(set) 
+                    $.getJSON('ros2msgs', { package: $("#node-input-ros2package-select").val().toString() },  function(set)
                     {
                         $("#node-input-ros2msg-select").empty();
                         $("<option></option>").appendTo("#node-input-ros2msg-select");
-                        $.each(set, function(i, message) 
+                        $.each(set, function(i, message)
                         {
                             message = message.replace('.mix', '');
                             $("<option value='" + message + "'>" + message + "</option>").appendTo("#node-input-ros2msg-select");
@@ -179,7 +179,7 @@
                 }
             });
 
-            $("#node-input-ros2msg-select").change(function() 
+            $("#node-input-ros2msg-select").change(function()
             {
                 this.message = {};
                 if (!this.initEditor)
@@ -197,9 +197,9 @@
                 this.editor.resize();
 
                 var n = this;
-                
-                $.getJSON('msgidl', { package: $("#node-input-ros2package-select").val().toString(), 
-                    msg: $("#node-input-ros2msg-select").val().toString() },  function(msg) 
+
+                $.getJSON('msgidl', { package: $("#node-input-ros2package-select").val().toString(),
+                    msg: $("#node-input-ros2msg-select").val().toString() },  function(msg)
                 {
                     n.editor.getSession().getDocument().setValue(msg["idl"]);
                     n.initEditor.getSession().getDocument().setValue(msg["msg"]);
@@ -210,7 +210,7 @@
                 });
             });
         },
-        oneditsave: function() 
+        oneditsave: function()
         {
             var node = this;
 
@@ -245,7 +245,7 @@
             $("#node-input-ros2pkg").val($("#node-input-ros2package-select").val().toString());
             $("#node-input-ros2message").val($("#node-input-ros2msg-select").val().toString());
 
-            var disposeEditor = function(editorName, targetName, defaultValue) 
+            var disposeEditor = function(editorName, targetName, defaultValue)
             {
                 var editor = node[editorName];
                 if (editor != undefined)
@@ -258,7 +258,7 @@
             disposeEditor("initEditor","node-input-message");
 
         },
-        oneditcancel: function() 
+        oneditcancel: function()
         {
             var node = this;
 

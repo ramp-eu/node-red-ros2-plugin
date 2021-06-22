@@ -6,11 +6,11 @@ module.exports = function(RED)
     var events = require('events');
     var fs = require('fs');
     var is_web_api = require('/usr/lib/IS-Web-API/configuration');
-    /* 
+    /*
      * @function SubscriberNode constructor
-     * This node is defined by the constructor function SubscriberNode, 
+     * This node is defined by the constructor function SubscriberNode,
      * which is called when a new instance of the node is created
-     * 
+     *
      * @param {Object} config - Contains the properties set in the flow editor
      */
     function SubscriberNode(config)
@@ -40,13 +40,13 @@ module.exports = function(RED)
                 {
                     node.send(msg_json['msg']);
                 });
-                
+
             }
         });
 
-        // Registers a listener to the input event, 
+        // Registers a listener to the input event,
         // which will be called whenever a message arrives at this node
-        node.on('input', function(msg) 
+        node.on('input', function(msg)
         {
             node.status({ fill: "green", shape: "dot", text: "message" });
 
@@ -54,7 +54,7 @@ module.exports = function(RED)
             node.send(msg);
         });
 
-        // Called when there is a re-deploy or the program is closed 
+        // Called when there is a re-deploy or the program is closed
         node.on('close', function()
         {
             // Stops the IS execution and resets the yaml
@@ -63,13 +63,13 @@ module.exports = function(RED)
         });
     }
 
-    // The node is registered in the runtime using the name Subscriber 
+    // The node is registered in the runtime using the name Subscriber
     RED.nodes.registerType("Subscriber", SubscriberNode);
 
     //Function that sends to the html file the qos descriptions read from the json file
-    RED.httpAdmin.get("/subqosdescription", RED.auth.needsPermission('Subscriber.read'), function(req,res) 
+    RED.httpAdmin.get("/subqosdescription", RED.auth.needsPermission('Subscriber.read'), function(req,res)
     {
-        var description_path = __dirname + "/../qos-description.json";  
+        var description_path = __dirname + "/../qos-description.json";
         var rawdata  = fs.readFileSync(description_path);
         let json = JSON.parse(rawdata);
         res.json(json);

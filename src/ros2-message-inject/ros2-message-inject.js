@@ -1,17 +1,22 @@
 // RED argument provides the module access to Node-RED runtime api
-module.exports = function(RED) 
+module.exports = function(RED)
 {
     var execFile = require('child_process').execFile;
     var cron = require('cron');
     var fs = require('fs');
     var home = process.env.HOME;
     var idl_path = "";
+    var ros2_home = '/opt/ros/' + process.env.ROS_DISTRO;
+    if (process.env.IS_ROS2_PATH)
+    {
+        ros2_home = process.env.IS_ROS2_PATH;
+    }
 
-    /* 
+    /*
      * @function ROS2InjectNode constructor
-     * This node is defined by the constructor function ROS2InjectNode, 
+     * This node is defined by the constructor function ROS2InjectNode,
      * which is called when a new instance of the node is created
-     * 
+     *
      * @param {Object} n - Contains the properties set in the flow editor
      */
     function ROS2InjectNode(n) {
@@ -119,12 +124,12 @@ module.exports = function(RED)
      * @brief Function that returns all the occurences of the substring in the main string
      * @param {String} substring - Contains the characters that want to be located
      * @param {String} string - Contains the main string
-     * @returns 
+     * @returns
      */
     function locations (substring, string) {
         var a = [],i = -1;
         while ((i = string.indexOf(substring, i+1)) >= 0)
-        { 
+        {
             a.push(i);
         }
         return a;
@@ -132,7 +137,7 @@ module.exports = function(RED)
 
     /**
      * @brief Function to sort the type structures according to its dependencies
-     * @param {Array} result - Array for storing the sort result 
+     * @param {Array} result - Array for storing the sort result
      * @param {Array} visited - Array containing the objects already visited
      * @param {Map} map - Map containing all the objects that need to be sorted
      * @param {Object} obj  - Current object
@@ -142,104 +147,76 @@ module.exports = function(RED)
         Object.entries(obj[1]).forEach(function(dep){
             if(!visited[dep[1]] && Object.keys(map).includes(dep[1])) {
                 sort_util(result, visited, map, map[dep[1]]);
-            } 
+            }
         });
         result.push(obj);
     }
 
     // Function that returns the IDL associated with the selected message type
-    RED.httpAdmin.get("/getidl", RED.auth.needsPermission("ROS2 Inject.write"), function(req,res) 
+    RED.httpAdmin.get("/getidl", RED.auth.needsPermission("ROS2 Inject.write"), function(req,res)
     {
-        if (!idl_path)
-        {
-            var rosidl_path = home + "/rosidl_msgs_path.txt";
-            //Gets the .mix path from rosidl_msgs_path.txt
-            var line  = fs.readFileSync(rosidl_path).toString();
-            var index = line.indexOf('\n');
+        var msg_path = ros2_home + "/share/" + req.query['package'] + "/msg/" + req.query['msg'] + ".idl";
 
-            if (index != -1)
-            {
-                idl_path = line.substr(index + 1, line.length - 1);
-            }
-            
-            var index = idl_path.indexOf('\n');
-            if (index != -1)
-            {
-                idl_path = idl_path.substr(0, index);
-            }
+        var idl = fs.readFileSync(msg_path).toString();
+
+        var parser_path = home + "/idl_parser_path.txt";
+        var line  = fs.readFileSync(parser_path).toString();
+        var index = line.indexOf('\n');
+        var path = line;
+        if (index != -1)
+        {
+            path = line.substr(0, index);
         }
 
-        var hpp_msg_path = idl_path + "/" + req.query['package'] + "/msg/convert__msg__" + req.query['msg'] + ".hpp";
-        
-        var content = fs.readFileSync(hpp_msg_path).toString();
-        var idl_begin = content.indexOf("~~~(");
-        if (idl_begin != -1)
-        {
-            content = content.substr(idl_begin + 4); //Remove also the '~~~(' characters
-        }
-        var idl_end = content.indexOf(")~~~");
-        if (idl_end != -1)
-        {
-            var type_dict = {};
-            var idl = content.substr(0, idl_end);
+        var type_dict = {};
 
-            var parser_path = home + "/idl_parser_path.txt";
-            var line  = fs.readFileSync(parser_path).toString();
-            var index = line.indexOf('\n');
-            var path = line;
-            if (index != -1)
+        // Executes the xtypes command line validator to get the type members
+        execFile(path + "/xtypes_idl_validator", [String(idl)], function(error, stdout, stderr) {
+            // Defined Structure Position
+            stdout = stdout.substr(stdout.indexOf('Struct Name:'));
+            console.log(stdout);
+            var occurences = locations('Struct Name:', stdout);
+
+            var i = 0;
+            occurences.forEach( s_pos =>
             {
-                path = line.substr(0, index);
-            }
-        
-            // Executes the xtypes command line validator to get the type members
-            execFile(path + "/xtypes_idl_validator", [String(idl)], function(error, stdout, stderr) {
-                // Defined Structure Position 
-                stdout = stdout.substr(stdout.indexOf('Struct Name:'));
-                console.log(stdout);
-                var occurences = locations('Struct Name:', stdout);
-
-                var i = 0;
-                occurences.forEach( s_pos => 
-                {
-                    var members = locations('Struct Member:', stdout);
-                    var struct_name = stdout.substr(s_pos + 12/*Struct Name:*/, members[i] - (s_pos + 12 + 1) /*\n*/);
-                    type_dict[struct_name] = {};
-                    members.forEach( pos => {
-                        var init_pos = stdout.indexOf('[', pos);
-                        var inner_name = stdout.substr(pos + 14/*Struct Member:*/, init_pos - (pos + 14));
-                        if (inner_name == struct_name)
-                        {
-                            var member = stdout.substr(init_pos + 1, stdout.indexOf(']', pos) - init_pos - 1);
-                            var data = member.split(',');
-                            // var module_index = data[1].lastIndexOf('::');
-                            // if (module_index != -1)
-                            // {
-                            //     data[1] = data[1].substr(module_index + 2 /*::*/);
-                            // }
-                            type_dict[inner_name][data[0]] = data[1];
-                            i++;
-                        }
-                    });
-                });
-
-                var map = {}; // Creates key value pair of name and object
-                var result = []; // the result array
-                var visited = {}; // takes a note of the traversed dependency
-
-                Object.entries(type_dict).forEach( function(obj){ // build the map
-                    map[obj[0]]  = obj;
-                });
-
-                Object.entries(type_dict).forEach(function(obj){ // Traverse array
-                    if(!visited[obj[0]]) { // check for visited object
-                        sort_util(result, visited, map, obj);
+                var members = locations('Struct Member:', stdout);
+                var struct_name = stdout.substr(s_pos + 12/*Struct Name:*/, members[i] - (s_pos + 12 + 1) /*\n*/);
+                type_dict[struct_name] = {};
+                members.forEach( pos => {
+                    var init_pos = stdout.indexOf('[', pos);
+                    var inner_name = stdout.substr(pos + 14/*Struct Member:*/, init_pos - (pos + 14));
+                    if (inner_name == struct_name)
+                    {
+                        var member = stdout.substr(init_pos + 1, stdout.indexOf(']', pos) - init_pos - 1);
+                        var data = member.split(',');
+                        // var module_index = data[1].lastIndexOf('::');
+                        // if (module_index != -1)
+                        // {
+                        //     data[1] = data[1].substr(module_index + 2 /*::*/);
+                        // }
+                        type_dict[inner_name][data[0]] = data[1];
+                        i++;
                     }
                 });
-
-                console.log(result);
-                res.json(result);
             });
-        }
+
+            var map = {}; // Creates key value pair of name and object
+            var result = []; // the result array
+            var visited = {}; // takes a note of the traversed dependency
+
+            Object.entries(type_dict).forEach( function(obj){ // build the map
+                map[obj[0]]  = obj;
+            });
+
+            Object.entries(type_dict).forEach(function(obj){ // Traverse array
+                if(!visited[obj[0]]) { // check for visited object
+                    sort_util(result, visited, map, obj);
+                }
+            });
+
+            console.log(result);
+            res.json(result);
+        });
     });
 }

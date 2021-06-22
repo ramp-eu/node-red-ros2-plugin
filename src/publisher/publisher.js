@@ -3,11 +3,11 @@ module.exports = function(RED)
 {
     var fs = require('fs');
     var is_web_api = require('/usr/lib/IS-Web-API/configuration');
-    /* 
+    /*
      * @function PublisherNode constructor
-     * This node is defined by the constructor function PublisherNode, 
+     * This node is defined by the constructor function PublisherNode,
      * which is called when a new instance of the node is created
-     * 
+     *
      * @param {Object} config - Contains the properties set in the flow editor
      */
     function PublisherNode(config)
@@ -17,6 +17,8 @@ module.exports = function(RED)
         this.props = config.props;
         var node = this;
 
+        console.log(config);
+
         let {color, message} = is_web_api.add_publisher(config['id'], config['topic'], config['selectedtype']);
         if (message && color)
         {
@@ -24,8 +26,8 @@ module.exports = function(RED)
         }
 
         // Event emitted when the deploy is finished
-        RED.events.once('flows:started', function() 
-        {            
+        RED.events.once('flows:started', function()
+        {
             let {color, message} = is_web_api.launch(config['id']);
             if (message && color)
             {
@@ -33,9 +35,9 @@ module.exports = function(RED)
             }
         });
 
-        // Registers a listener to the input event, 
+        // Registers a listener to the input event,
         // which will be called whenever a message arrives at this node
-        node.on('input', function(msg) 
+        node.on('input', function(msg)
         {
             node.status({ fill: "green", shape: "dot", text: "Message Published"});
 
@@ -44,7 +46,7 @@ module.exports = function(RED)
             is_web_api.send_message(config['topic'], msg);
         });
 
-        // Called when there is a re-deploy or the program is closed 
+        // Called when there is a re-deploy or the program is closed
         node.on('close', function()
         {
             // Stops the IS execution and resets the yaml
@@ -57,9 +59,9 @@ module.exports = function(RED)
     RED.nodes.registerType("Publisher", PublisherNode);
 
     // Function that sends to the html file the qos descriptions read from the json file
-    RED.httpAdmin.get("/pubqosdescription", RED.auth.needsPermission('Publisher.read'), function(req,res) 
+    RED.httpAdmin.get("/pubqosdescription", RED.auth.needsPermission('Publisher.read'), function(req,res)
     {
-        var description_path = __dirname + "/../qos-description.json";  
+        var description_path = __dirname + "/../qos-description.json";
         var rawdata  = fs.readFileSync(description_path);
         let json = JSON.parse(rawdata);
         res.json(json);
