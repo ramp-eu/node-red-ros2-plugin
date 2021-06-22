@@ -9,7 +9,6 @@ RUN apt-get update
 
 # Install Integration Service dependencies
 RUN apt-get install -y libyaml-cpp-dev
-RUN apt-get install -y libboost-dev
 RUN apt-get install -y libboost-program-options-dev
 RUN apt-get install -y libwebsocketpp-dev
 
@@ -26,15 +25,15 @@ RUN npm install -g --unsafe-perm node-red
 RUN apt-get install -y git
 RUN mkdir -p /is_ws/src
 WORKDIR /is_ws/src
-RUN git clone https://github.com/eProsima/soss.git -b feature/soss-core-to-is-core is
-RUN git clone https://github.com/eProsima/xtypes.git --recursive xtypes
+RUN git clone https://github.com/eProsima/Integration-Service.git is -b feature/ros2_dynamic
+RUN git clone https://github.com/eProsima/xtypes.git --recursive xtypes -b feature/ros2_sh_dynamic
 RUN git clone https://github.com/eProsima/WebSocket-SH.git
-RUN git clone https://github.com/eProsima/ROS2-SH.git
+RUN git clone https://github.com/eProsima/ROS2-SH.git -b feature/ros2_dynamic
 WORKDIR /is_ws
 
 # Compile the Integration Service
 RUN . /opt/ros/foxy/setup.sh && \
-    colcon build --packages-up-to is-ros2-test is-websocket --cmake-args -DCMAKE_BUILD_TYPE=RELEASE --install-base /opt/is
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=RELEASE -DIS_ROS2_SH_MODE=DYNAMIC --install-base /opt/is
 RUN . /opt/is/local_setup.sh
 
 # Install IS-Web-API
