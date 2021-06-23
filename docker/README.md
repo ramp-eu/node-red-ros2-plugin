@@ -1,6 +1,6 @@
 ## How to build an image
 
-The [Dockerfile](https://github.com/ramp-eu/node-red-ros2-plugin/blob/feature/first_nodes/docker/Dockerfile) associated with this repository can
+The [Dockerfile](https://github.com/ramp-eu/node-red-ros2-plugin/blob/feature/ros2-connection/docker/Dockerfile) associated with this repository can
 be used to build a docker image:
 
 ```console
