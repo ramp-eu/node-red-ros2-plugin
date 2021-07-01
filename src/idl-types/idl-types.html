@@ -1,7 +1,7 @@
 <!--Properties that can be configured for this node-->
 <script type="text/html" data-template-name="IDL Type">
     <div class="form-row">
-       <label for="node-input-name"><i class="fa fa-tag"></i>&nbsp;&nbsp; Type Name</label> 
+       <label for="node-input-name"><i class="fa fa-tag"></i>&nbsp;&nbsp; Type Name</label>
        <div style="display: inline-block; width: calc(100% - 105px)"><input type="text" id="node-input-name"></div>
     </div>
 
@@ -18,11 +18,12 @@
 
 <!--Node style definition-->
 <script type="text/javascript">
+
     RED.nodes.registerType('IDL Type',
     {
         color:"#fdd0a2",
         category: 'ROS 2',
-        defaults: 
+        defaults:
         {
             name: { value: "", required: true },
             idltype: { value: "struct HelloWorld {\n\tstring msg;\n};" }
@@ -30,11 +31,11 @@
         inputs:1,
         outputs:1,
         icon: "ros2-icon.png",
-        label: function() 
+        label: function()
         {
             return this.name || this._("IDL Type");
         },
-        labelStyle: function() 
+        labelStyle: function()
         {
             return this.name ? "node_label_italic" : "";
         },
@@ -42,13 +43,13 @@
         {
             var that = this;
 
-            var buildEditor = function(id, value, defaultValue) 
+            var buildEditor = function(id, value, defaultValue)
             {
                 var editor = RED.editor.createEditor({
                     id: id,
                     mode: 'ace/mode/text',
                     value: value || defaultValue || "",
-                    globals: 
+                    globals:
                     {
                         msg:true,
                         context:true,
@@ -64,7 +65,7 @@
                         clearInterval: true
                     }
                 });
-                if (defaultValue && value === "") 
+                if (defaultValue && value === "")
                 {
                     editor.moveCursorTo(defaultValue.split("\n").length - 1, 0);
                 }
@@ -79,11 +80,11 @@
                 fields:[
                     {
                         name: 'info',
-                        get: function() 
+                        get: function()
                         {
                             return that.infoEditor.getValue();
                         },
-                        set: function(v) 
+                        set: function(v)
                         {
                             that.infoEditor.setValue(v||"", -1);
                         }
@@ -93,9 +94,9 @@
             });
             this.editor.focus();
 
-            var expandButtonClickHandler = function(editor) 
+            var expandButtonClickHandler = function(editor)
             {
-                return function(e) 
+                return function(e)
                 {
                     e.preventDefault();
                     var value = editor.getValue();
@@ -104,11 +105,11 @@
                         width: "Infinity",
                         cursor: editor.getCursorPosition(),
                         mode: "ace/mode/nrjavascript",
-                        complete: function(v,cursor) 
+                        complete: function(v,cursor)
                         {
                             editor.setValue(v, -1);
                             editor.gotoLine(cursor.row+1,cursor.column,false);
-                            setTimeout(function() 
+                            setTimeout(function()
                             {
                                 editor.focus();
                             },300);
@@ -121,23 +122,43 @@
             RED.popover.tooltip($("#node-function-expand-js"), RED._("node-red:common.label.expand"));
 
         },
-        oneditsave: function() 
+        oneditsave: function()
         {
             var node = this;
 
-            $.getJSON('checkidl', { idl: node["editor"].getValue().toString() }, function(result) 
+            $.getJSON('checkidl', { idl: node["editor"].getValue().toString()}, function(result)
             {
-                var error = result.replace("PEGLIB_PARSER", "IDL Type Parser").replaceAll("<", "'").replaceAll(">", "");
-                RED.notify(node._(error,{message:node._("inject.errors.failed")}),"error");
+                if (result["error"])
+                {
+                    if (node)
+                    {
+                        var error = result["error"].replace("PEGLIB_PARSER", "IDL Type Parser").replaceAll("<", "'").replaceAll(">", "");
+                        RED.notify(node._(error,{message:node._("inject.errors.failed")}),"error");
+                        node.name = "";
+                        if (!node.validationErrors.includes("idl"))
+                        {
+                            node.validationErrors.push("idl");
+                            node.valid = false;
+                        }
+                    }
+                }
+                if (result["name"] && node)
+                {
+                    node.name = result["name"];
+                    node.validationErrors = [];
+                    node.valid = true;
+                }
             });
 
-            var disposeEditor = function(editorName,targetName,defaultValue) 
+            console.log(node);
+
+            var disposeEditor = function(editorName,targetName,defaultValue)
             {
                 var editor = node[editorName];
                 var annot = editor.getSession().getAnnotations();
-                for (var k=0; k < annot.length; k++) 
+                for (var k=0; k < annot.length; k++)
                 {
-                    if (annot[k].type === "error") 
+                    if (annot[k].type === "error")
                     {
                         break;
                     }
@@ -145,7 +166,7 @@
                 var val = editor.getValue();
                 if (defaultValue)
                 {
-                    if (val.trim() == defaultValue.trim()) 
+                    if (val.trim() == defaultValue.trim())
                     {
                         val = "";
                     }
@@ -157,18 +178,18 @@
             disposeEditor("editor","node-input-idltype");
 
         },
-        oneditcancel: function() 
+        oneditcancel: function()
         {
             var node = this;
 
             node.editor.destroy();
             delete node.editor;
         },
-        oneditresize: function(size) 
+        oneditresize: function(size)
         {
             var rows = $("#dialog-form>div:not(.node-text-editor-row)");
             var height = $("#dialog-form").height();
-            for (var i=0; i<rows.length; i++) 
+            for (var i=0; i<rows.length; i++)
             {
                 height -= $(rows[i]).outerHeight(true);
             }
@@ -187,6 +208,6 @@
 
 <!--Help text shown for the IDL Type node-->
 <script type="text/html" data-help-name="IDL Type">
-    <p> This node represents a type defined by means of an IDL. IDL is a language that allows unambiguous specification 
+    <p> This node represents a type defined by means of an IDL. IDL is a language that allows unambiguous specification
         of the interfaces that may be used to define data types.</p>
 </script>

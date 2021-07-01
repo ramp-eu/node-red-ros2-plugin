@@ -11,6 +11,7 @@ module.exports = function(RED)
     {
         ros2_home = process.env.IS_ROS2_PATH;
     }
+    var is_web_api = require('/usr/lib/IS-Web-API/configuration');
 
     /*
      * @function ROS2InjectNode constructor
@@ -30,6 +31,9 @@ module.exports = function(RED)
         this.interval_id = null;
         this.cronjob = null;
         var node = this;
+        node.ready = false;
+
+        node.status({fill: "yellow", shape: "dot", text: "Wait until Visual-ROS is ready to be used."});
 
         if (node.repeat > 2147483) {
             node.error(RED._("inject.errors.toolong", this));
@@ -60,6 +64,16 @@ module.exports = function(RED)
             }, this.onceDelay);
         } else {
             node.repeaterSetup();
+        }
+
+        var event_emitter = is_web_api.get_event_emitter();
+        if (event_emitter)
+        {
+            // Event emitted when the WebSocket Client is connected correctly
+            event_emitter.on('websocket_client_connected', function()
+            {
+                node.status({fill: null, shape: null, text: null});
+            });
         }
 
         this.on("input", function(msg, send, done) {
@@ -97,23 +111,24 @@ module.exports = function(RED)
         }
         if (this.interval_id != null) {
             clearInterval(this.interval_id);
-            if (RED.settings.verbose) { this.log(RED._("inject.stopped")); }
+            if (RED.settings.verbose) { this.log(RED._("ROS2 Inject.stopped")); }
         } else if (this.cronjob != null) {
             this.cronjob.stop();
-            if (RED.settings.verbose) { this.log(RED._("inject.stopped")); }
+            if (RED.settings.verbose) { this.log(RED._("ROS2 Inject.stopped")); }
             delete this.cronjob;
         }
     };
 
     RED.httpAdmin.post("/inject/:id", RED.auth.needsPermission("ROS2 Inject.write"), function(req,res) {
         var node = RED.nodes.getNode(req.params.id);
+        console.log("Inject node", node);
         if (node != null) {
             try {
                 node.receive();
                 res.sendStatus(200);
             } catch(err) {
                 res.sendStatus(500);
-                node.error(RED._("inject.failed",{error:err.toString()}));
+                node.error(RED._("ROS2 Inject.failed",{error:err.toString()}));
             }
         } else {
             res.sendStatus(404);
@@ -155,9 +170,17 @@ module.exports = function(RED)
     // Function that returns the IDL associated with the selected message type
     RED.httpAdmin.get("/getidl", RED.auth.needsPermission("ROS2 Inject.write"), function(req,res)
     {
-        var msg_path = ros2_home + "/share/" + req.query['package'] + "/msg/" + req.query['msg'] + ".idl";
+        var idl = "";
+        if (req.query['idl'])
+        {
+            idl = req.query['idl'];
+        }
+        else
+        {
+            var msg_path = ros2_home + "/share/" + req.query['package'] + "/msg/" + req.query['msg'] + ".idl";
 
-        var idl = fs.readFileSync(msg_path).toString();
+            idl = fs.readFileSync(msg_path).toString();
+        }
 
         var parser_path = home + "/idl_parser_path.txt";
         var line  = fs.readFileSync(parser_path).toString();
@@ -183,6 +206,7 @@ module.exports = function(RED)
                 var members = locations('Struct Member:', stdout);
                 var struct_name = stdout.substr(s_pos + 12/*Struct Name:*/, members[i] - (s_pos + 12 + 1) /*\n*/);
                 type_dict[struct_name] = {};
+
                 members.forEach( pos => {
                     var init_pos = stdout.indexOf('[', pos);
                     var inner_name = stdout.substr(pos + 14/*Struct Member:*/, init_pos - (pos + 14));
@@ -190,11 +214,6 @@ module.exports = function(RED)
                     {
                         var member = stdout.substr(init_pos + 1, stdout.indexOf(']', pos) - init_pos - 1);
                         var data = member.split(',');
-                        // var module_index = data[1].lastIndexOf('::');
-                        // if (module_index != -1)
-                        // {
-                        //     data[1] = data[1].substr(module_index + 2 /*::*/);
-                        // }
                         type_dict[inner_name][data[0]] = data[1];
                         i++;
                     }

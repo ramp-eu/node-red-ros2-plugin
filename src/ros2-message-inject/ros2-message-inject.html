@@ -149,6 +149,152 @@
 
     var custom_struct = {};
 
+    function processIDL(idl_str, pkg, msg, node, n) {
+
+        var params = {};
+        var type_name = "";
+        var complete_name = "";
+        node.props = [];
+
+        if (idl_str)
+        {
+            params['idl'] = idl_str;
+            type_name = n.target.name;
+            complete_name = n.target.name;
+        }
+        else
+        {
+            params['package'] = pkg;
+            params['msg'] = msg;
+            type_name = n.target.ros2message;
+            complete_name = n.target.ros2pkg + "::msg::" + n.target.ros2message;
+        }
+
+        $.getJSON('getidl', params, function(idl)
+        {
+            //Array [[ 0: Struct name, 1: { member: type }], ...]
+            idl.forEach( function(struct)
+            {
+                if (struct[0] != type_name || !Object.keys(custom_struct).includes(struct[0]))
+                {
+                    custom_struct[struct[0]] = [];
+                }
+                Object.keys(struct[1]).forEach( function(member)
+                {
+                    var type = "";
+                    var default_value = "";
+                    var member_type = struct[1][member];
+
+                    // Basic Types
+                    if (Object.keys(types_dict).includes(member_type))
+                    {
+                        type = types_dict[member_type];
+                    }
+                    else
+                    {
+                        // container type_length_inner type
+                        var underscore_idx = member_type.indexOf('_');
+                        var container_type = member_type;
+                        if (underscore_idx != -1)
+                        {
+                            container_type = member_type.substr(0, underscore_idx);
+                        }
+                        switch (container_type)
+                        {
+                            case 'array':
+                            case 'sequence':
+                                member_type = member_type.substr(underscore_idx + 1);
+                                underscore_idx = member_type.indexOf('_');
+                                if (underscore_idx != -1)
+                                {
+                                    var length = member_type.substr(0, underscore_idx);
+                                    if (!isNaN(parseInt(length)))
+                                    {
+                                        member_type = member_type.substr(underscore_idx + 1);
+                                    }
+                                }
+                                type = 'json';
+                                default_value = "[]";
+                                break;
+                            case 'map':
+                            case 'enum':
+                            case 'union':
+                                type = 'json';
+                                default_value = "{}";
+                                break;
+                        }
+                    }
+
+                    // Main Struct Members
+                    if (complete_name == struct[0])
+                    {
+                        // Basic Types
+                        if (type != "")
+                        {
+                            var m = { p: member, v: default_value, vt: type, t: struct[1][member] };
+                            var old = node.props.filter(p => p.p == m.p && p.vt != m.vt);
+                            if (old.length > 0)
+                            {
+                                var idx = node.props.indexOf(old[0]);
+                                node.props.splice(idx, 1);
+                            }
+                            if (!node.props.some(p => p.p == m.p && p.vt == m.vt))
+                            {
+                                node.props.push(m);
+                            }
+                        }
+                        // Custom Types
+                        else if (type == "" && Object.keys(custom_struct).includes(member_type))
+                        {
+                            var is_container = containers.some(c => struct[1][member].includes(c));
+                            custom_struct[member_type].forEach( function(mem)
+                            {
+                                var aux = {};
+                                aux.p = mem.p; aux.t = mem.t;
+                                aux.v = (is_container && Object.keys(types_dict).includes(mem.t)) ? "[]" : mem.v;
+                                aux.vt = (is_container && Object.keys(types_dict).includes(mem.t)) ? "json" : mem.vt;
+                                aux.p = member + '.' + aux.p;
+
+                                var old = node.props.filter(p => p.p == aux.p && p.vt != aux.vt);
+                                if (old.length > 0)
+                                {
+                                    var idx = node.props.indexOf(old[0]);
+                                    node.props.splice(idx, 1);
+                                }
+                                if (!node.props.some(p => p.p == aux.p && p.vt == aux.vt))
+                                {
+                                    node.props.push(aux);
+                                }
+                            });
+                        }
+                    }
+                    // Custom Structures
+                    else if (complete_name != struct[0])
+                    {
+                        // Basic Types
+                        if (type != "")
+                        {
+                            custom_struct[struct[0]].push({ p: member, v: default_value, vt: type, t: struct[1][member]});
+                        }
+                        // Custom Types
+                        else if (type == "" && Object.keys(custom_struct).includes(member_type))
+                        {
+                            custom_struct[member_type].forEach( function(mem)
+                            {
+                                var aux = {};
+                                aux.p = mem.p; aux.v = mem.v; aux.vt = mem.vt; aux.t = mem.t;
+                                aux.p = member + '.' + aux.p;
+                                custom_struct[struct[0]].push(aux);
+                            });
+                        }
+                    }
+                });
+            });
+            // Add the type fields to the property container
+            node.props.forEach(p => $("#node-input-property-container").editableList('addItem', p));
+        });
+    }
+
     RED.nodes.registerType('ROS2 Inject',{
         category: 'ROS 2',
         color:"#a6bbcf",
@@ -161,6 +307,7 @@
             onceDelay: {value:0.1},
             topic: {value:""},
             ros2type: { value:"" },
+            idltype: {value: "" }
         },
         icon: "ros2-icon.png",
         inputs:0,
@@ -314,140 +461,27 @@
                             {
                                 if (node.ros2type != n.target.ros2pkg + '/' + n.target.ros2message)
                                 {
-                                    if (node.ros2type != "")
-                                    {
-                                        node.props = [];
-                                    }
                                     node.ros2type = n.target.ros2pkg + '/' + n.target.ros2message;
                                 }
 
-                                $.getJSON('getidl', { package: n.target.ros2pkg, msg: n.target.ros2message }, function(idl)
-                                {
-                                    //Array [[ 0: Struct name, 1: { member: type }], ...]
-                                    idl.forEach( function(struct)
-                                    {
-                                        if (struct[0] != n.target.ros2message)
-                                        {
-                                            custom_struct[struct[0]] = [];
-                                        }
-                                        Object.keys(struct[1]).forEach( function(member)
-                                        {
-                                            var type = "";
-                                            var default_value = "";
-                                            var member_type = struct[1][member];
-
-                                            // Basic Types
-                                            if (Object.keys(types_dict).includes(member_type))
-                                            {
-                                                type = types_dict[member_type];
-                                            }
-                                            else
-                                            {
-                                                // container type_length_inner type
-                                                var underscore_idx = member_type.indexOf('_');
-                                                var container_type = member_type;
-                                                if (underscore_idx != -1)
-                                                {
-                                                    container_type = member_type.substr(0, underscore_idx);
-                                                }
-                                                switch (container_type)
-                                                {
-                                                    case 'array':
-                                                    case 'sequence':
-                                                        member_type = member_type.substr(underscore_idx + 1);
-                                                        underscore_idx = member_type.indexOf('_');
-                                                        if (underscore_idx != -1)
-                                                        {
-                                                            var length = member_type.substr(0, underscore_idx);
-                                                            if (!isNaN(parseInt(length)))
-                                                            {
-                                                                member_type = member_type.substr(underscore_idx + 1);
-                                                            }
-                                                        }
-                                                        type = 'json';
-                                                        default_value = "[]";
-                                                        break;
-                                                    case 'map':
-                                                    case 'enum':
-                                                    case 'union':
-                                                        type = 'json';
-                                                        default_value = "{}";
-                                                        break;
-                                                }
-                                            }
-
-                                            // Main Struct Members
-                                            if ((n.target.ros2pkg + "::msg::" + n.target.ros2message) == struct[0])
-                                            {
-                                                // Basic Types
-                                                if (type != "")
-                                                {
-                                                    var m = { p: member, v: default_value, vt: type, t: struct[1][member] };
-                                                    var old = node.props.filter(p => p.p == m.p && p.vt != m.vt);
-                                                    if (old.length > 0)
-                                                    {
-                                                        var idx = node.props.indexOf(old[0]);
-                                                        node.props.splice(idx, 1);
-                                                    }
-                                                    if (!node.props.some(p => p.p == m.p && p.vt == m.vt))
-                                                    {
-                                                        node.props.push(m);
-                                                    }
-                                                }
-                                                // Custom Types
-                                                else if (type == "" && Object.keys(custom_struct).includes(member_type))
-                                                {
-                                                    var is_container = containers.some(c => struct[1][member].includes(c));
-                                                    custom_struct[member_type].forEach( function(mem)
-                                                    {
-                                                        var aux = {};
-                                                        aux.p = mem.p; aux.t = mem.t;
-                                                        aux.v = (is_container && Object.keys(types_dict).includes(mem.t)) ? "[]" : mem.v;
-                                                        aux.vt = (is_container && Object.keys(types_dict).includes(mem.t)) ? "json" : mem.vt;
-                                                        aux.p = member + '.' + aux.p;
-
-                                                        var old = node.props.filter(p => p.p == aux.p && p.vt != aux.vt);
-                                                        if (old.length > 0)
-                                                        {
-                                                            var idx = node.props.indexOf(old[0]);
-                                                            node.props.splice(idx, 1);
-                                                        }
-                                                        if (!node.props.some(p => p.p == aux.p && p.vt == aux.vt))
-                                                        {
-                                                            node.props.push(aux);
-                                                        }
-                                                    });
-                                                }
-                                            }
-                                            // Custom Structures
-                                            else if ((n.target.ros2pkg + "::msg::" + n.target.ros2message) != struct[0])
-                                            {
-                                                // Basic Types
-                                                if (type != "")
-                                                {
-                                                    custom_struct[struct[0]].push({ p: member, v: default_value, vt: type, t: struct[1][member]});
-                                                }
-                                                // Custom Types
-                                                else if (type == "" && Object.keys(custom_struct).includes(member_type))
-                                                {
-                                                    custom_struct[member_type].forEach( function(mem)
-                                                    {
-                                                        var aux = {};
-                                                        aux.p = mem.p; aux.v = mem.v; aux.vt = mem.vt; aux.t = mem.t;
-                                                        aux.p = member + '.' + aux.p;
-                                                        custom_struct[struct[0]].push(aux);
-                                                    });
-                                                }
-                                            }
-                                        });
-                                    });
-                                    // Add the type fields to the property container
-                                    node.props.forEach(p => $("#node-input-property-container").editableList('addItem', p));
-                                });
+                                processIDL("", n.target.ros2pkg, n.target.ros2message, node, n);
                             }
                             break;
                         case "IDL Type":
                             console.log("idl");
+                            console.log(n.target);
+                            if (n.target.validationErrors.length > 0)
+                            {
+                                RED.notify("The type must be configured before", "error");
+                            }
+                            else
+                            {
+                                if (node.idltype != n.target.name)
+                                {
+                                    node.idltype = n.target.name;
+                                }
+                                processIDL(n.target.idltype, "", "", node, n);
+                            }
                             break;
                     }
                 }
@@ -786,17 +820,24 @@
                     url: "inject/"+this.id,
                     type:"POST",
                     success: function(resp) {
-                        RED.notify(node._("inject.success",{label:label}),{type:"success",id:"inject"});
+                        if (node.status.fill == "yellow")
+                        {
+                            RED.notify("Please wait until Visual-ROS is ready to be used","error");
+                        }
+                        else
+                        {
+                            RED.notify("Message injected successfully", {type:"success", id:"ROS2 Inject"});
+                        }
                     },
                     error: function(jqXHR,textStatus,errorThrown) {
                         if (jqXHR.status == 404) {
-                            RED.notify(node._("common.notification.error",{message:node._("common.notification.errors.not-deployed")}),"error");
+                            RED.notify("There are undeployed changes in this node","error");
                         } else if (jqXHR.status == 500) {
-                            RED.notify(node._("common.notification.error",{message:node._("inject.errors.failed")}),"error");
+                            RED.notify("Message injection failed","error");
                         } else if (jqXHR.status == 0) {
-                            RED.notify(node._("common.notification.error",{message:node._("common.notification.errors.no-response")}),"error");
+                            RED.notify("There is no response","error");
                         } else {
-                            RED.notify(node._("common.notification.error",{message:node._("common.notification.errors.unexpected",{status:jqXHR.status,message:textStatus})}),"error");
+                            RED.notify(node._("Error",{message:node._("Unexpected error",{status:jqXHR.status,message:textStatus})}),"error");
                         }
                     }
                 });

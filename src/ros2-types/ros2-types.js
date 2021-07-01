@@ -116,8 +116,15 @@ module.exports = function(RED)
             json_data["idl"] = idl;
 
             // MSG
-            var msg = fs.readFileSync(msg_path + ".msg").toString();
-            json_data["msg"] = msg;
+            if (fs.existsSync(msg_path + ".msg"))
+            {
+                var msg = fs.readFileSync(msg_path + ".msg").toString();
+                json_data["msg"] = msg;
+            }
+            else
+            {
+                json_data["msg"] = "";
+            }
             res.json(json_data);
         }
     });

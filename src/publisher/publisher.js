@@ -16,6 +16,7 @@ module.exports = function(RED)
         RED.nodes.createNode(this, config);
         this.props = config.props;
         var node = this;
+        node.ready = false;
 
         console.log(config);
 
@@ -35,15 +36,28 @@ module.exports = function(RED)
             }
         });
 
+        var event_emitter = is_web_api.get_event_emitter();
+        if (event_emitter)
+        {
+            // Event emitted when the WebSocket Client is connected correctly
+            event_emitter.on('websocket_client_connected', function()
+            {
+                node.ready = true;
+            });
+        }
+
         // Registers a listener to the input event,
         // which will be called whenever a message arrives at this node
         node.on('input', function(msg)
         {
-            node.status({ fill: "green", shape: "dot", text: "Message Published"});
+            if (node.ready)
+            {
+                node.status({ fill: "green", shape: "dot", text: "Message Published"});
 
-            // Passes the message to the next node in the flow
-            node.send(msg);
-            is_web_api.send_message(config['topic'], msg);
+                // Passes the message to the next node in the flow
+                node.send(msg);
+                is_web_api.send_message(config['topic'], msg);
+            }
         });
 
         // Called when there is a re-deploy or the program is closed

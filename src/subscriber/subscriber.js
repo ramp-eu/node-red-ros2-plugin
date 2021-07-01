@@ -38,20 +38,11 @@ module.exports = function(RED)
                 // Event emitted when a new message is received
                 event_emitter.on(config["topic"] + '_data', function(msg_json)
                 {
+                    node.status({ fill: "green", shape: "dot", text: "Message Received" });
+                    // Passes the message to the next node in the flow
                     node.send(msg_json['msg']);
                 });
-
             }
-        });
-
-        // Registers a listener to the input event,
-        // which will be called whenever a message arrives at this node
-        node.on('input', function(msg)
-        {
-            node.status({ fill: "green", shape: "dot", text: "message" });
-
-            // Passes the message to the next node in the flow
-            node.send(msg);
         });
 
         // Called when there is a re-deploy or the program is closed
