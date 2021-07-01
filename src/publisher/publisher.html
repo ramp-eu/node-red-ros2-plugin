@@ -46,7 +46,11 @@
         },
         inputs: 1,
         outputs: 1,
-        icon: "ros2-icon.png",
+        icon: "ros2-icon.svg",
+        inputLabels: function(i)
+        {
+            return "Type";
+        },
         label: function()
         {
             return "ROS2 Publisher";
@@ -238,9 +242,20 @@
 
 <!--Help text shown for the ROS2 Publisher node-->
 <script type="text/html" data-help-name="Publisher">
-    <p> This node represents a ROS 2 publisher. It is able of publishing messages on a specific topic. By using this node, you can configure the following ROS 2 settings: </p>
-    <p> - Topic: Element that acts as a bus for nodes to exchange messages.</p>
-    <p> - Domain id: Value used to segment the network in order to avoid interference between different groups of computers running ROS 2 on the same local area network.
-        Machines with different domain IDs will not talk, nor interfere, with each other. </p>
-    <p> - QoS: Policies that allow you to tune communication between nodes, as they define how each entity will behave. </p>
+    <p>This node represents a ROS 2 publisher. It is able of publishing messages on a specific topic.</p>
+    <h3>Settings</h3>
+        <p>By using this node, you can configure the following ROS 2 settings: </p>
+        <dl class="message-properties">
+        <dt>Topic<span class="property-type">string</span></dt>
+        <dd>Element that acts as a bus for nodes to exchange messages.</dd>
+        <dt>Domain id<span class="property-type">number</span></dt>
+        <dd>Value used to segment the network in order to avoid interference between different groups of computers running ROS 2 on the same local area network.
+            Machines with different domain IDs will not talk, nor interfere, with each other. </dd>
+        <dt>QoS<span class="property-type">object</span></dt>
+        <dd>Policies that allow you to tune communication between nodes, as they define how each entity will behave. </dd>
+        </dl>
+    <h3>Details</h3>
+        <p>This node is equivalent in the ROS 2 CLI to the <i>ros2 topic pub</i> command.</p>
+        <p>To receive the messages published by this node, you can use the ROS 2 CLI command <i>ros2 topic echo</i>.</p>
+        <p><b>Note</b>: This node must be linked to a type node (IDL type or ROS2 Type).</p>
 </script>

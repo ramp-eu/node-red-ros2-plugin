@@ -297,7 +297,7 @@
 
     RED.nodes.registerType('ROS2 Inject',{
         category: 'ROS 2',
-        color:"#a6bbcf",
+        color: "#ddd",
         defaults: {
             types: { value: [] },
             props:{ value:[] },
@@ -309,9 +309,13 @@
             ros2type: { value:"" },
             idltype: {value: "" }
         },
-        icon: "ros2-icon.png",
+        icon: "ros2-icon.svg",
         inputs:0,
         outputs:1,
+        outputLabels: function(i)
+        {
+            return "Type";
+        },
         label: function() {
             return "ROS2 Inject";
         },
@@ -468,8 +472,6 @@
                             }
                             break;
                         case "IDL Type":
-                            console.log("idl");
-                            console.log(n.target);
                             if (n.target.validationErrors.length > 0)
                             {
                                 RED.notify("The type must be configured before", "error");
@@ -846,4 +848,24 @@
         oneditresize: resizeDialog
     });
 })();
+</script>
+
+<!--Help text shown for the ROS2 Inject node-->
+<script type="text/html" data-help-name="ROS2 Inject">
+    <p>Injects a ROS 2 message into a flow either manually or at regular intervals. The message content is defined by the
+    type defined.</p>
+    <h3>Details</h3>
+        <p> This node analyze the IDL definition corresponding to the data type selected in the adjacent type node,
+        extracts the fields that needs to be filled in and shows them to the user in a list alongs with its type.</p>
+        <p>By default, the node is triggered manually by clicking on its button within the editor. It can also be set to
+         inject at regular intervals or according to a schedule.</p>
+        <p>It can also be configured to inject once each time the flows are started.</p>
+        <p>The maximum Interval that can be specified is about 596 hours / 24 days. However if you are looking at
+        intervals greater than one day you should consider using a scheduler node that can cope with power outages and
+        restarts.</p>
+        <p><b>Note</b>: The "Interval between times" and "at a specific time" options use the standard cron system.
+        This means that 20 minutes will be at the next hour, 20 minutes past and 40 minutes past - not in 20 minutes time.
+        If you want every 20 minutes from now - use the "interval" option.</p>
+        <p><b>Note</b>: To include a newline in a string you must use a Function node to create the payload.</p>
+        <p><b>Note</b>: This node must be linked to a type node (IDL type or ROS2 Type).</p>
 </script>

@@ -42,6 +42,14 @@ module.exports = function(RED)
                     // Passes the message to the next node in the flow
                     node.send(msg_json['msg']);
                 });
+                event_emitter.on('websocket_client_connection_failed', function()
+                {
+                    node.status({ fill: "red", shape: "dot", text: "Error while launching Visual-ROS. Please deploy the flow again."});
+                });
+                event_emitter.on('websocket_client_connection_closed', function()
+                {
+                    node.status({ fill: "red", shape: "dot", text: "Error procuced during the execution. Please deploy the flow again."});
+                });
             }
         });
 

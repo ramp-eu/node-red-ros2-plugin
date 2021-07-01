@@ -54,7 +54,7 @@
         },
         inputs: 1,
         outputs: 1,
-        icon: "ros2-icon.png",
+        icon: "ros2-icon.svg",
         label: function()
         {
             if (this.ros2pkg && this.ros2message)
@@ -273,5 +273,15 @@
 
 <!--Help text shown for the ros2-type node-->
 <script type="text/html" data-help-name="ROS2 Type">
-    <p> This node represents a specific ROS 2 Type. </p>
+    <p> This node represents a specific ROS 2 Built-in Type. </p>
+    <h3>Settings</h3>
+        <dl class="message-properties">
+        <dt>Package<span class="property-type"></span></dt>
+        <dd>Name of the ROS 2 package containing the type that want to be used.</dd>
+        <dt>Message<span class="property-type">string</span></dt>
+        <dd>Name of the ROS 2 type that want to be used.</dd>
+        </dl>
+    <h3>Details</h3>
+        <p>This node doesn't have functionality itself. It must be connected to a inject node (ROS2 Inject) or a
+        function node (Publisher or Subscriber).</p>
 </script>

@@ -1,8 +1,7 @@
 <!--Properties that can be configured for this node-->
 <script type="text/html" data-template-name="IDL Type">
     <div class="form-row">
-       <label for="node-input-name"><i class="fa fa-tag"></i>&nbsp;&nbsp; Type Name</label>
-       <div style="display: inline-block; width: calc(100% - 105px)"><input type="text" id="node-input-name"></div>
+       <div style="display: none; width: calc(100% - 105px)"><input type="text" id="node-input-name"></div>
     </div>
 
     <div class="form-row" style="margin-bottom: 0px;">
@@ -30,7 +29,7 @@
         },
         inputs:1,
         outputs:1,
-        icon: "ros2-icon.png",
+        icon: "ros2-icon.svg",
         label: function()
         {
             return this.name || this._("IDL Type");
@@ -150,8 +149,6 @@
                 }
             });
 
-            console.log(node);
-
             var disposeEditor = function(editorName,targetName,defaultValue)
             {
                 var editor = node[editorName];
@@ -210,4 +207,12 @@
 <script type="text/html" data-help-name="IDL Type">
     <p> This node represents a type defined by means of an IDL. IDL is a language that allows unambiguous specification
         of the interfaces that may be used to define data types.</p>
+    <h3>Settings</h3>
+        <dl class="message-properties">
+        <dt>IDL definition<span class="property-type">string</span></dt>
+        <dd>String representing a data type using the IDL language.</dd>
+        </dl>
+    <h3>Details</h3>
+        <p>This node doesn't have functionality itself. It must be connected to a inject node (ROS2 Inject) or a
+        function node (Publisher or Subscriber).</p>
 </script>
