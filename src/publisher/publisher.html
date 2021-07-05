@@ -105,7 +105,7 @@
                     var prop = opt;
                     if (!prop.hasOwnProperty('p'))
                     {
-                        prop = { p:"HistoryQos.kind",v:"KEEP_LAST",vt:"historykind" };
+                        prop = { p:"history.kind",v:"KEEP_LAST",vt:"historykind" };
                     }
                     container.css({
                         overflow: 'hidden',
@@ -116,28 +116,28 @@
                     var typesmap = new Map();
                     var qos_descriptions = {};
 
-                    var historykind = { value: "historyQos.kind", options: ["KEEP_LAST", "KEEP_ALL"], description: "History kind"};
+                    var historykind = { value: "history.kind", options: ["KEEP_LAST", "KEEP_ALL"], description: "History kind"};
                     var reliability = { value: "reliability", options: ["RELIABLE", "BEST_EFFORT"]};
                     var durability = { value: "durability", options: ["VOLATILE", "TRANSIENT_LOCAL"]};
                     var livelinesskind = { value: "liveliness.kind", options: ["AUTOMATIC", "MANUAL_BY_TOPIC"]};
 
-                    typesmap.set("HistoryQos.kind", historykind);
-                    typesmap.set("HistoryQos.depth", "num");
-                    typesmap.set("ReliabilityQos", reliability);
-                    typesmap.set("DurabilityQos", durability);
-                    typesmap.set("DeadlineQos.period.sec", "num");
-                    typesmap.set("DeadlineQos.period.nanosec", "num");
-                    typesmap.set("LifespanQos.period.sec", "num");
-                    typesmap.set("LifespanQos.period.nanosec", "num");
-                    typesmap.set("LivelinessQos.kind", livelinesskind);
-                    typesmap.set("LivelinessQos.lease_duration.sec", "num");
-                    typesmap.set("LivelinessQos.lease_duration.nanosec", "num");
+                    typesmap.set("history.kind", historykind);
+                    typesmap.set("history.depth", "num");
+                    typesmap.set("reliability", reliability);
+                    typesmap.set("durability", durability);
+                    typesmap.set("deadline.period.sec", "num");
+                    typesmap.set("deadline.period.nanosec", "num");
+                    typesmap.set("lifespan.period.sec", "num");
+                    typesmap.set("lifespan.period.nanosec", "num");
+                    typesmap.set("liveliness.kind", livelinesskind);
+                    typesmap.set("liveliness.lease_duration.sec", "num");
+                    typesmap.set("liveliness.lease_duration.nanosec", "num");
 
                     $.getJSON('pubqosdescription', function(data)
                     {
                         qos_descriptions = JSON.parse(JSON.stringify(data));
 
-                        row.attr('title', qos_descriptions["HistoryQos"]["description"]);
+                        row.attr('title', qos_descriptions["history"]["description"]);
                     });
 
                     var propertyName = $('<input/>',{class:"node-input-prop-property-name", type:"text"})
@@ -145,9 +145,9 @@
                         .appendTo(row)
 			            .typedInput({
                             types:[{label: "QoS.", value:"qos", options:
-                                ["HistoryQos.kind", "HistoryQos.depth", "ReliabilityQos", "DurabilityQos", "DeadlineQos.period.sec",
-                                 "DeadlineQos.period.nanosec", "LifespanQos.period.sec", "LifespanQos.period.nanosec","LivelinessQos.kind",
-                                 "LivelinessQos.lease_duration.sec", "LivelinessQos.lease_duration.nanosec"]}]
+                                ["history.kind", "history.depth", "reliability", "durability", "deadline.period.sec",
+                                 "deadline.period.nanosec", "lifespan.period.sec", "lifespan.period.nanosec","liveliness.kind",
+                                 "liveliness.lease_duration.sec", "liveliness.lease_duration.nanosec"]}]
                         })
                         .on('change', function(type, value)
                         {

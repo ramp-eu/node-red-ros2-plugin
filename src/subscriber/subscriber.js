@@ -20,7 +20,8 @@ module.exports = function(RED)
         this.props = config.props;
         var node = this;
 
-        let {color, message} = is_web_api.add_subscriber(config['id'], config["topic"], config['selectedtype']);
+        let {color, message} = is_web_api.add_subscriber(config['id'], config["topic"], config['selectedtype'],
+            config['props']);
         if (message && color)
         {
             node.status({ fill: color, shape: "dot", text: message });

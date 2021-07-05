@@ -20,7 +20,7 @@ module.exports = function(RED)
 
         console.log(config);
 
-        let {color, message} = is_web_api.add_publisher(config['id'], config['topic'], config['selectedtype']);
+        let {color, message} = is_web_api.add_publisher(config['id'], config['topic'], config['selectedtype'], config['props']);
         if (message && color)
         {
             node.status({ fill: color, shape: "dot", text: message});
@@ -43,6 +43,7 @@ module.exports = function(RED)
             event_emitter.on('websocket_client_connected', function()
             {
                 node.ready = true;
+                node.status({ fill: null, shape: null, text: null});
             });
             event_emitter.on('websocket_client_connection_failed', function()
             {
