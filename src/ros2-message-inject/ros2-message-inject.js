@@ -31,7 +31,6 @@ module.exports = function(RED)
         this.interval_id = null;
         this.cronjob = null;
         var node = this;
-        node.ready = false;
 
         node.status({fill: "yellow", shape: "dot", text: "Wait until Visual-ROS is ready to be used."});
 
@@ -119,11 +118,16 @@ module.exports = function(RED)
         }
     };
 
-    RED.httpAdmin.post("/inject/:id", RED.auth.needsPermission("ROS2 Inject.write"), function(req,res) {
+    function updateNodeProps(node, props) {
+        node.props = JSON.parse(props);
+    }
+
+
+    RED.httpAdmin.post("/inject/:id/:props", RED.auth.needsPermission("ROS2 Inject.write"), function(req,res) {
         var node = RED.nodes.getNode(req.params.id);
-        console.log("Inject node", node);
         if (node != null) {
             try {
+                updateNodeProps(node, req.params.props);
                 node.receive();
                 res.sendStatus(200);
             } catch(err) {

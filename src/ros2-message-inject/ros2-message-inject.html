@@ -154,7 +154,6 @@
         var params = {};
         var type_name = "";
         var complete_name = "";
-        node.props = [];
 
         if (idl_str)
         {
@@ -466,6 +465,7 @@
                                 if (node.ros2type != n.target.ros2pkg + '/' + n.target.ros2message)
                                 {
                                     node.ros2type = n.target.ros2pkg + '/' + n.target.ros2message;
+                                    node.props = [];
                                 }
 
                                 processIDL("", n.target.ros2pkg, n.target.ros2message, node, n);
@@ -481,6 +481,7 @@
                                 if (node.idltype != n.target.name)
                                 {
                                     node.idltype = n.target.name;
+                                    node.props = [];
                                 }
                                 processIDL(n.target.idltype, "", "", node, n);
                             }
@@ -819,10 +820,10 @@
                 label = label.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
                 var node = this;
                 $.ajax({
-                    url: "inject/"+this.id,
+                    url: "inject/"+this.id+"/"+JSON.stringify(node.props),
                     type:"POST",
                     success: function(resp) {
-                        if (node.status.fill == "yellow")
+                        if (node.status && node.status.fill == "yellow")
                         {
                             RED.notify("Please wait until Visual-ROS is ready to be used","error");
                         }
