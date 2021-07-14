@@ -54,10 +54,6 @@ module.exports = function(RED)
                 {
                     node.status({ fill: "red", shape: "dot", text: "Error while launching Visual-ROS. Please deploy the flow again."});
                 });
-                event_emitter.on('websocket_client_connection_closed', function()
-                {
-                    node.status({ fill: "red", shape: "dot", text: "Error procuced during the execution. Please deploy the flow again."});
-                });
             }
         });
 

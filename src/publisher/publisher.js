@@ -49,10 +49,6 @@ module.exports = function(RED)
             {
                 node.status({ fill: "red", shape: "dot", text: "Error while launching Visual-ROS. Please deploy the flow again."});
             });
-            event_emitter.on('websocket_client_connection_closed', function()
-            {
-                node.status({ fill: "red", shape: "dot", text: "Error procuced during the execution. Please deploy the flow again."});
-            });
         }
 
         // Registers a listener to the input event,
@@ -75,6 +71,7 @@ module.exports = function(RED)
             // Stops the IS execution and resets the yaml
             is_web_api.new_config();
             is_web_api.stop();
+            node.status({ fill: null, shape: null, text: null});
         });
     }
 

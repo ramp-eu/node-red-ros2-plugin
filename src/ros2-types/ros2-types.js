@@ -128,9 +128,4 @@ module.exports = function(RED)
             res.json(json_data);
         }
     });
-
-    RED.httpAdmin.get("/updateconnections", RED.auth.needsPermission('ROS2 Type.read'), function(req,res)
-    {
-        is_web_api.register_connection(req.query['type'], req.query['wire'], req.query['restart']);
-    });
 }
