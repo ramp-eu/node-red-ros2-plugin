@@ -462,6 +462,10 @@
                             }
                             else
                             {
+                                if (node.idltype != "")
+                                {
+                                    node.idltype = "";
+                                }
                                 if (node.ros2type != n.target.ros2pkg + '/' + n.target.ros2message)
                                 {
                                     node.ros2type = n.target.ros2pkg + '/' + n.target.ros2message;
@@ -478,11 +482,16 @@
                             }
                             else
                             {
+                                if (node.ros2type != "")
+                                {
+                                    node.ros2type = "";
+                                }
                                 if (node.idltype != n.target.name)
                                 {
                                     node.idltype = n.target.name;
                                     node.props = [];
                                 }
+
                                 processIDL(n.target.idltype, "", "", node, n);
                             }
                             break;
