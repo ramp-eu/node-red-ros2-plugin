@@ -7,7 +7,7 @@ be used to build a docker image:
 docker build -f Dockerfile -t node-red-ros2-plugin .
 ```
 
-## How to use the plugin 
+## How to use the plugin
 
 - First run the already created docker image:
 
